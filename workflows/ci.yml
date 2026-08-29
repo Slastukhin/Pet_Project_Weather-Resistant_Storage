@@ -1,0 +1,32 @@
+name: PR Checks
+
+on:
+  pull_request:
+    branches: [ "main" ]          
+  workflow_dispatch:              
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Загрузить код
+        uses: actions/checkout@v4
+
+      - name: Установить Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'  
+          cache: 'pip'             
+
+      - name: Установить зависимости
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt  
+          pip install flake8 pytest         
+
+      - name: Линтинг (проверка стиля)
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+     # - name: Запустить тесты (если есть)
+     #   run: pytest tests/   # если папка с тестами называется иначе, измените
