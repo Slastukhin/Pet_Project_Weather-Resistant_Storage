@@ -1,10 +1,9 @@
 ---
 x-airflow-common: &airflow-common
-  image: ${AIRFLOW_IMAGE_NAME:-apache/airflow:3.3.1}
-  # Когда напишешь свой Dockerfile (п.1 ТЗ) — закомментируй image выше и раскомментируй build:
-  # build:
-  #   context: .
-  #   dockerfile: Dockerfile
+  # Свой образ: apache/airflow:3.3.1 + пакеты из requirements.txt (Dockerfile рядом).
+  # docker compose build пересобирает его; имя тега задаёт image ниже.
+  image: ${AIRFLOW_IMAGE_NAME:-weather-dwh-airflow:3.3.1}
+  build: .
   env_file:
     - path: ${ENV_FILE_PATH:-.env}
       required: false
@@ -37,12 +36,15 @@ x-airflow-common: &airflow-common
     # --- Telegram-алерты ---
     TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
     TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+    # --- Kaggle: CLI сам читает эту переменную, файл ~/.kaggle не нужен ---
+    KAGGLE_API_TOKEN: ${KAGGLE_API_TOKEN:-}
   volumes:
     - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
     - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
     - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
     - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
     - ${AIRFLOW_PROJ_DIR:-.}/dbt:/opt/airflow/dbt
+    - ~/.kaggle:/home/airflow/.kaggle
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on: &airflow-common-depends-on
     redis:
@@ -198,25 +200,32 @@ services:
         limits: {memory: 2G}
 
   # ============================================================
-  # dbt — вручную/из CI, НЕ поднимается вместе со стеком
+  # dbt — вручную
   # docker compose --profile tools run --rm dbt run
   # ============================================================
   dbt:
     image: ghcr.io/dbt-labs/dbt-postgres:1.8.2
-    profiles: ["tools"]
+    # У dbt-labs нет ARM-сборок — на Apple Silicon работает через эмуляцию Rosetta.
+    platform: linux/amd64
+    # dbt — не демон, а CLI. Контейнер поднимается вместе со стеком и просто
+    # ждёт; команды запускаются внутри него:
+    #   docker compose exec dbt dbt run
+    entrypoint: ["/bin/bash", "-c", "sleep infinity"]
     environment:
-      DBT_PROFILES_DIR: /usr/app/dbt
+      DBT_PROFILES_DIR: /usr/app/dbt/my_dwh/
       DWH_POSTGRES_USER: ${DWH_POSTGRES_USER:-dwh}
       DWH_POSTGRES_PASSWORD: ${DWH_POSTGRES_PASSWORD:-dwh}
       DWH_POSTGRES_DB: ${DWH_POSTGRES_DB:-dwh}
     volumes:
-      - ./dbt:/usr/app/dbt          # profiles.yml лежит внутри проекта — никакого /root/.dbt
-    working_dir: /usr/app/dbt
-    entrypoint: ["dbt"]
-    command: ["--version"]
+      - ./dbt:/usr/app/dbt          # весь dbt-проект, включая profiles.yml
+    working_dir: /usr/app/dbt/my_dwh
+    restart: always
     depends_on:
       dwh-postgres:
         condition: service_healthy
+    deploy:
+      resources:
+        limits: {memory: 1G}
 
   # ============================================================
   # Airflow

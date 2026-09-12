@@ -1,0 +1,130 @@
+version: 2
+
+models:
+  - name: dim_date
+    description: "Календарь: одна строка на один день"
+    columns:
+      - name: date_key
+        description: "Cтабильный ключ дня, например 20261009"
+      - name: date
+        description: "Из ряда календарных дней, без часового пояса и времени"
+      - name: year
+        description: "Год для группировки отчетов"
+      - name: month
+        description: "Номер месяца"
+      - name: weekday
+        description: "Название дня недели"
+      - name: is_weekend
+        description: "Булевое значение, которое показывает является ли день недели выходным"
+  - name: fct_weather_forecast_hour
+    description: "Таблица прогноза погоды вперед (на три дня), на текущий час"
+    columns:
+      - name: city_key
+        description: "Ключ "
+      - name: issued_at
+        description: "Время версии"
+      - name: forecast_for
+        description: "Час на который прогнозируется погода"
+      - name: forecast_date_key
+        description: "Ключ в выбранной версии города"
+      - name: forecast_hour
+        description: "Час от 0 до 23"
+      - name: temperature_c
+        description: "Температура воздуха в цельсиях"
+      - name: apparent_temperature_c
+        description: "Ощущаемая температура воздуха в цельсиях"
+      - name: precipitation_mm
+        description: "Ожидаемые осадки в мм"
+      - name: surface_pressure_hpa
+        description: "Ожидаемое давление на поверхности земли"
+      - name: precipitation_probability_pct
+        description: "Вероятность осадков"
+      - name: loaded_at
+        description: "Время записи исходного ответа"
+  - name: fct_sales
+    description: "Таблица с продажами"
+    columns:
+      - name: sale_key
+        description: "Стабильный ключ чека"
+      - name: receipt_id
+        description: "Глобальный ID из генератора, защита от повторной загрузки"
+      - name: city_key
+        description: "Ключ города"
+      - name: sold_at
+        description: "Момент времени продажи"
+      - name: date_key
+        description: "День продажи"
+      - name: hour
+        description: "Час продажи в часовом поясе"
+      - name: total_amount_rub
+        description: "Итог к оплате, сверяется с суммой позиций"
+      - name: cash_type
+        description: "Тип платежного средства"
+      - name: loaded_at
+        description: "Время исходной загрузки"
+  - name: dim_city
+    description: "Справочник городов"
+    columns:
+      - name: city_key
+        description: "Ключ, создается хранилищем"
+      - name: city_slug
+        description: "Техническое наименование города"
+      - name: city_name
+        description: "Фактическое название города"
+      - name: timezone
+        description: "Часовой/Временной пояс"
+      - name: valid_from
+        description: "От какого числа валидна запись фактического названия города"
+      - name: valid_to
+        description: "До какого числа валидна запись фактического названия города"
+      - name: is_current
+        description: "Если запись еще актуальная, то True"
+  - name: dim_product
+    description: "Справочник продуктов"
+    columns:
+      - name: product_key
+        description: "Стабильный ключ, создается хранилищем"
+      - name: product_code
+        description: "Постоянный код продукта, из генератора, не название"
+      - name: product_name
+        description: "Название продукта"
+  - name: fct_weather_hour
+    description: "Фактический прогноз погоды"
+    columns:
+      - name: city_key
+        description: "Ключ"
+      - name: measured_at
+        description: "Однозначный момент времени"
+      - name: date_key
+        description: "Ключ на дату"
+      - name: hour
+        description: "Час в поясе времени года"
+      - name: temperature_c
+        description: "Температура в цельсиях"
+      - name: apparent_temperature_c
+        description: "Ощущаемая температура в цельсиях"
+      - name: precipitation_mm
+        description: "Осадки в мм"
+      - name: surface_pressure_hpa
+        description: "Давление на поверхности земли"
+      - name: loaded_at
+        description: "Время исходной загрузки, для обновления"
+  - name: fct_sales_item
+    description: ""
+    columns:
+      - name: sale_item_key
+        description: "Стабильный ключ"
+      - name: sale_key
+        description: "Ключ чека"
+      - name: line_number
+        description: "Номер позиции в чеке"
+      - name: product_key
+        description: "Ключ продукта"
+      - name: quantity
+        description: "Количество единиц продукта в чеке"
+      - name: unit_price_rub
+        description: "Цена за единицу в момент продажи"
+      - name: line_amount_rub
+        description: "Цена без скидок"
+      - name: loaded_at
+        description: "Время исходной загрузки"

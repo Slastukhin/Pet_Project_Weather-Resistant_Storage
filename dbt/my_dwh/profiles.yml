@@ -1,0 +1,12 @@
+my_dwh:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: dwh-postgres
+      port: 5432
+      user: "{{ env_var('DWH_POSTGRES_USER', 'dwh') }}"
+      password: "{{ env_var('DWH_POSTGRES_PASSWORD', 'dwh') }}"
+      dbname: "{{ env_var('DWH_POSTGRES_DB', 'dwh') }}"
+      schema: public
+      threads: 4

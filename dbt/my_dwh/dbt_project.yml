@@ -1,0 +1,24 @@
+name: 'my_dwh'
+version: '1.0.0'
+
+
+profile: 'my_dwh'
+
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:         
+  - "target"
+  - "dbt_packages"
+
+
+models:
+  my_dwh:
+    staging:
+      +materialized: view
+      +schema: stg

@@ -5,83 +5,20 @@ from datetime import timedelta
 from typing import Any
 
 import pendulum
-import requests
 from airflow.providers.postgres.hooks.postgres import PostgresHook
-from airflow.sdk import dag, task
+from airflow.sdk import Param, dag, task
 from psycopg.types.json import Json
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
 
-from airflow.sdk import Param
+from common.weather import CITIES, DDL, city_slug, http_session
 
 log = logging.getLogger(__name__)
 
 DWH_CONN_ID = "dwh_postgres"
 ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
-HOURLY_VARIABLES = ("temperature_2m", "apparent_temperature", "precipitation")
+HOURLY_VARIABLES = ("temperature_2m", "apparent_temperature", "precipitation", "surface_pressure")
 ARCHIVE_LAG_DAYS = 6
 HISTORY_YEARS = 2
 REQUEST_TIMEOUT_SEC = 120
-
-CITIES: list[dict[str, Any]] = [
-    {"name": "Moscow", "lat": 55.76, "lon": 37.62},
-    {"name": "Saint Petersburg", "lat": 59.94, "lon": 30.31},
-    {"name": "Novosibirsk", "lat": 55.03, "lon": 82.92},
-    {"name": "Yekaterinburg", "lat": 56.84, "lon": 60.60},
-    {"name": "Kazan", "lat": 55.79, "lon": 49.11},
-    {"name": "Nizhny Novgorod", "lat": 56.33, "lon": 44.01},
-    {"name": "Chelyabinsk", "lat": 55.15, "lon": 61.40},
-    {"name": "Samara", "lat": 53.18, "lon": 50.12},
-    {"name": "Omsk", "lat": 54.97, "lon": 73.38},
-    {"name": "Rostov-on-Don", "lat": 47.22, "lon": 39.71},
-    {"name": "Ufa", "lat": 54.73, "lon": 55.96},
-    {"name": "Krasnoyarsk", "lat": 56.01, "lon": 92.87},
-    {"name": "Perm", "lat": 58.00, "lon": 56.24},
-    {"name": "Voronezh", "lat": 51.66, "lon": 39.20},
-    {"name": "Volgograd", "lat": 48.71, "lon": 44.51},
-    {"name": "Krasnodar", "lat": 45.02, "lon": 38.97},
-    {"name": "Saratov", "lat": 51.53, "lon": 46.04},
-    {"name": "Tyumen", "lat": 57.15, "lon": 65.53},
-    {"name": "Tolyatti", "lat": 53.51, "lon": 49.42},
-    {"name": "Izhevsk", "lat": 56.85, "lon": 53.22},
-]
-
-DDL = """
-CREATE SCHEMA IF NOT EXISTS raw;
-
-CREATE TABLE IF NOT EXISTS raw.cities (
-    city_slug  text PRIMARY KEY,
-    city_name  text NOT NULL,
-    latitude   numeric(9, 5) NOT NULL,
-    longitude  numeric(9, 5) NOT NULL,
-    updated_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE TABLE IF NOT EXISTS raw.weather_archive (
-    city_slug    text NOT NULL REFERENCES raw.cities (city_slug),
-    period_start date NOT NULL,
-    period_end   date NOT NULL,
-    payload      jsonb NOT NULL,
-    loaded_at    timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT weather_archive_pk PRIMARY KEY (city_slug, period_start, period_end)
-);
-"""
-
-
-def city_slug(name: str) -> str:
-    return name.lower().replace(" ", "_").replace("-", "_")
-
-
-def http_session() -> requests.Session:
-    retry = Retry(
-        total=5,
-        backoff_factor=1.5,
-        status_forcelist=(429, 500, 502, 503, 504),
-        allowed_methods=("GET",),
-    )
-    session = requests.Session()
-    session.mount("https://", HTTPAdapter(max_retries=retry))
-    return session
 
 
 @dag(

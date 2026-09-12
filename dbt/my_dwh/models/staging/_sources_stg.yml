@@ -1,0 +1,83 @@
+version: 2
+
+sources:
+  # Описание таблиц из первого источника open-meteo
+  - name: open_meteo                        
+    schema: raw            
+    tables:
+      # Описание таблицы и столбцов по городам
+      - name: cities
+        description: "Сырые данные по городам"
+        columns:
+          - name: city_slug
+            description: "Техническое название города"
+          - name: city_name
+            description: "Название города"
+          - name: latitude
+            description: "Широта"
+          - name: longitude
+            description: "Долгота"
+          - name: updated_at
+            description: "Дата загрузки"
+      # Описание таблицы архива погоды из open_meteo
+      - name: weather_archive
+        description: "Таблица архива погоды из open_meteo"
+        columns:
+          - name: city_slug
+            description: "Техническое название города"
+          - name: period_start
+            description: "Начало периода с какой даты была загрузка архива"
+          - name: period_end
+            description: "Конец периода с какой даты была загрузка архива"
+          - name: payload
+            description: "Json данных по архивной погоде"
+          - name: loaded_at
+            description: "Дата загрузки данных"
+      # Описание таблицы прогноза погоды
+      - name: weather_forecast
+        loaded_at_field: loaded_at
+        freshness:
+          warn_after: {count: 2, period: hour}
+          error_after: {count: 6, period: hour}
+        description: "Таблица с прогнозом погоды на 3 дня"
+        columns: 
+          - name: city_slug
+            description: "Техническое название города"
+          - name: issued_at
+            description: "Момент выпуска прогноза"
+          - name: forecast_days
+            description: "Количество дней на которые загружен прогноз"
+          - name: payload
+            description: "Json данных по прогнозу погоды"
+          - name: loaded_at
+            description: "Дата и время загрузки"
+  # Описание таблицы из источника kaggle
+  - name: kaggle
+    schema: raw
+    tables:
+      # Описание таблицы покупок кофе
+      - name: kaggle_coffee
+        description: "Продажи кофе по датам и часам"
+        columns:
+          - name: hour_of_day
+            description: "В какой час дня/ночи была произведена покупка кофе"
+          - name: cash_type
+            description: "Способ платежа"
+          - name: money
+            description: "Количество денег уплаченное за покупку"
+          - name: coffee_name
+            description: "Название кофе"
+          - name: time_of_day
+            description: "Время суток"
+          - name: weekday
+            description: "День недели"
+          - name: month_name
+            description: "Месяц года"
+          - name: weekdaysort
+            description: "Сортировка по дням недели от пн до вс"
+          - name: monthsort
+            description: "Сортировка по месяцам года"
+          - name: date
+            description: "Дата"
+          - name: time
+            description: "Время"

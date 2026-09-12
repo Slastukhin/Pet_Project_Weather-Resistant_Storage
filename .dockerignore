@@ -1,0 +1,15 @@
+# В контекст сборки Docker не должно попадать ничего лишнего:
+# секреты, гит, виртуальное окружение, данные и логи.
+.git
+.gitignore
+.env
+venv/
+logs/
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+metabase-plugins/
+__pycache__/
+*.py[cod]
+.DS_Store
+README.md
