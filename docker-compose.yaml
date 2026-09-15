@@ -52,7 +52,103 @@ x-airflow-common: &airflow-common
     airflow-db:
       condition: service_healthy
 
+x-spark-common: &spark-common
+  image: weather-dwh-spark:3.5.8
+  build:
+    context: ./spark
+  init: true
+  environment: &spark-common-env
+    SPARK_HOME: /opt/spark
+    PYSPARK_PYTHON: python3
+    PYSPARK_DRIVER_PYTHON: python3
+    SPARK_DAEMON_MEMORY: 256m
+  volumes:
+    - ./spark/jobs:/opt/spark/jobs:ro
+    - ./spark/conf/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
+  restart: unless-stopped
+
 services:
+  # Spark standalone: master + worker + client (Python driver).
+  # Submit one application at a time from spark-client.
+  spark-master:
+    <<: *spark-common
+    hostname: spark-master
+    entrypoint: ["/opt/spark/bin/spark-class"]
+    command:
+      - org.apache.spark.deploy.master.Master
+      - --host
+      - spark-master
+      - --port
+      - "7077"
+      - --webui-port
+      - "8080"
+    ports:
+      - "127.0.0.1:${SPARK_MASTER_UI_PORT:-8082}:8080"
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/json/', timeout=3).read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    deploy:
+      resources:
+        limits: {memory: 512M, cpus: '0.5'}
+
+  spark-worker:
+    <<: *spark-common
+    hostname: spark-worker
+    entrypoint: ["/opt/spark/bin/spark-class"]
+    command:
+      - org.apache.spark.deploy.worker.Worker
+      - --host
+      - spark-worker
+      - --cores
+      - "2"
+      - --memory
+      - 1g
+      - --webui-port
+      - "8081"
+      - spark://spark-master:7077
+    ports:
+      - "127.0.0.1:${SPARK_WORKER_UI_PORT:-8083}:8081"
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8081/json/', timeout=3).read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    depends_on:
+      spark-master:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits: {memory: 2G, cpus: '2.0'}
+
+  spark-client:
+    <<: *spark-common
+    hostname: spark-client
+    entrypoint: ["/bin/bash", "-c", "exec sleep infinity"]
+    working_dir: /opt/spark/jobs
+    environment:
+      <<: *spark-common-env
+      DWH_POSTGRES_HOST: dwh-postgres
+      DWH_POSTGRES_PORT: "5432"
+      DWH_POSTGRES_USER: ${DWH_POSTGRES_USER:-dwh}
+      DWH_POSTGRES_PASSWORD: ${DWH_POSTGRES_PASSWORD:-dwh}
+      DWH_POSTGRES_DB: ${DWH_POSTGRES_DB:-dwh}
+    ports:
+      - "127.0.0.1:${SPARK_APP_UI_PORT:-4040}:4040"
+    depends_on:
+      spark-master:
+        condition: service_healthy
+      spark-worker:
+        condition: service_healthy
+      dwh-postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits: {memory: 2G, cpus: '1.0'}
+
   # ============================================================
   # Инфраструктура Airflow
   # ============================================================
