@@ -299,23 +299,6 @@ def main() -> None:
             city_profiles_df,
         )
 
-        print("Города, у которых не заполнен timezone:")
-
-        (
-            result_df
-            .filter(F.col("timezone").isNull())
-            .select("city_slug")
-            .distinct()
-            .show(100, truncate=False)
-        )
-
-        print("Содержимое CSV с профилями городов:")
-
-        city_profiles_df.select(
-            "city_slug",
-            "timezone",
-            "price_multiplier",
-        ).show(100, truncate=False)
 
         # --- читаем исходные продажи и города --
         sales_count = sales_df.count()
