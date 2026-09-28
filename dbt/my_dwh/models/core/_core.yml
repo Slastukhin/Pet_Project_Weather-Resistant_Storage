@@ -1,130 +1,261 @@
 version: 2
 
 models:
-  - name: dim_date
+  - name: core_dim_date
     description: "Календарь: одна строка на один день"
     columns:
       - name: date_key
-        description: "Cтабильный ключ дня, например 20261009"
+        description: "Стабильный ключ дня, например 20261009"
+        data_tests:
+          - unique
+          - not_null
       - name: date
         description: "Из ряда календарных дней, без часового пояса и времени"
+        data_tests:
+          - unique
       - name: year
         description: "Год для группировки отчетов"
+        data_tests:
+          - not_null
       - name: month
         description: "Номер месяца"
+        data_tests:
+          - not_null
       - name: weekday
         description: "Название дня недели"
+        data_tests:
+          - not_null
       - name: is_weekend
-        description: "Булевое значение, которое показывает является ли день недели выходным"
-  - name: fct_weather_forecast_hour
+        description: "Булевое значение, которое показывает, является ли день недели выходным"
+        data_tests:
+          - not_null
+
+  - name: core_fct_weather_forecast_hour
     description: "Таблица прогноза погоды вперед (на три дня), на текущий час"
     columns:
       - name: city_key
-        description: "Ключ "
+        description: "Ключ города"
+        data_tests:
+          - unique
+          - not_null
       - name: issued_at
         description: "Время версии"
+        data_tests:
+          - unique
+          - not_null
       - name: forecast_for
-        description: "Час на который прогнозируется погода"
+        description: "Час, на который прогнозируется погода"
+        data_tests:
+          - unique
+          - not_null
+      - name: forecast_days
+        description: "Количество дней, запрошенных у API в этой версии прогноза"
+        data_tests:
+          - not_null
       - name: forecast_date_key
         description: "Ключ в выбранной версии города"
+        data_tests:
+          - unique
+          - not_null
       - name: forecast_hour
         description: "Час от 0 до 23"
+        data_tests:
+          - not_null
       - name: temperature_c
         description: "Температура воздуха в цельсиях"
+        data_tests:
+          - not_null
       - name: apparent_temperature_c
         description: "Ощущаемая температура воздуха в цельсиях"
+        data_tests:
+          - not_null
       - name: precipitation_mm
         description: "Ожидаемые осадки в мм"
+        data_tests:
+          - not_null
       - name: surface_pressure_hpa
         description: "Ожидаемое давление на поверхности земли"
+        data_tests:
+          - not_null
       - name: precipitation_probability_pct
         description: "Вероятность осадков"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "precipitation_probability_pct between 0 and 100"
       - name: loaded_at
         description: "Время записи исходного ответа"
-  - name: fct_sales
+        data_tests:
+          - not_null
+
+  - name: core_fct_sales
     description: "Таблица с продажами"
     columns:
       - name: sale_key
         description: "Стабильный ключ чека"
-      - name: receipt_id
-        description: "Глобальный ID из генератора, защита от повторной загрузки"
+        data_tests:
+          - unique
+          - not_null
+      - name: source_sale_id
+        description: "Показывает, из какой исходной продажи создан этот чек; одинаков для копий по городам."
+        data_tests:
+          - not_null
       - name: city_key
         description: "Ключ города"
+        data_tests:
+          - unique
+          - not_null
       - name: sold_at
         description: "Момент времени продажи"
+        data_tests:
+          - not_null
       - name: date_key
         description: "День продажи"
+        data_tests:
+          - unique
+          - not_null
       - name: hour
         description: "Час продажи в часовом поясе"
+        data_tests:
+          - not_null
       - name: total_amount_rub
         description: "Итог к оплате, сверяется с суммой позиций"
-      - name: cash_type
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "total_amount_rub >= 0"
+      - name: payment_type
         description: "Тип платежного средства"
+        data_tests:
+          - not_null
       - name: loaded_at
         description: "Время исходной загрузки"
-  - name: dim_city
+        data_tests:
+          - not_null
+
+  - name: core_dim_city
     description: "Справочник городов"
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - city_slug
+            - timezone
     columns:
       - name: city_key
         description: "Ключ, создается хранилищем"
+        data_tests:
+          - unique
+          - not_null
       - name: city_slug
         description: "Техническое наименование города"
+        data_tests:
+          - unique
       - name: city_name
         description: "Фактическое название города"
+        data_tests:
+          - not_null
       - name: timezone
         description: "Часовой/Временной пояс"
-      - name: valid_from
-        description: "От какого числа валидна запись фактического названия города"
-      - name: valid_to
-        description: "До какого числа валидна запись фактического названия города"
-      - name: is_current
-        description: "Если запись еще актуальная, то True"
-  - name: dim_product
+        data_tests:
+          - not_null
+      - name: latitude
+        description: "Широта"
+        data_tests:
+          - not_null
+      - name: longitude
+        description: "Долгота"
+        data_tests:
+          - not_null
+
+  - name: core_dim_product
     description: "Справочник продуктов"
     columns:
       - name: product_key
         description: "Стабильный ключ, создается хранилищем"
-      - name: product_code
-        description: "Постоянный код продукта, из генератора, не название"
+        data_tests:
+          - unique
+          - not_null
       - name: product_name
         description: "Название продукта"
-  - name: fct_weather_hour
+        data_tests:
+          - unique
+
+  - name: core_fct_weather_hour
     description: "Фактический прогноз погоды"
     columns:
       - name: city_key
-        description: "Ключ"
+        description: "Ключ города"
+        data_tests:
+          - unique
+          - not_null
       - name: measured_at
         description: "Однозначный момент времени"
+        data_tests:
+          - unique
+          - not_null
       - name: date_key
         description: "Ключ на дату"
+        data_tests:
+          - unique
+          - not_null
       - name: hour
         description: "Час в поясе времени года"
+        data_tests:
+          - not_null
       - name: temperature_c
         description: "Температура в цельсиях"
+        data_tests:
+          - not_null
       - name: apparent_temperature_c
         description: "Ощущаемая температура в цельсиях"
+        data_tests:
+          - not_null
       - name: precipitation_mm
         description: "Осадки в мм"
+        data_tests:
+          - not_null
       - name: surface_pressure_hpa
         description: "Давление на поверхности земли"
+        data_tests:
+          - not_null
       - name: loaded_at
         description: "Время исходной загрузки, для обновления"
-  - name: fct_sales_item
+        data_tests:
+          - not_null
+
+  - name: core_fct_sales_item
     description: ""
     columns:
       - name: sale_item_key
         description: "Стабильный ключ"
+        data_tests:
+          - unique
+          - not_null
       - name: sale_key
         description: "Ключ чека"
+        data_tests:
+          - unique
+          - not_null
       - name: line_number
         description: "Номер позиции в чеке"
+        data_tests:
+          - not_null
       - name: product_key
         description: "Ключ продукта"
+        data_tests:
+          - unique
+          - not_null
       - name: quantity
         description: "Количество единиц продукта в чеке"
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "quantity > 0"
       - name: unit_price_rub
         description: "Цена за единицу в момент продажи"
+        data_tests:
+          - not_null
       - name: line_amount_rub
         description: "Цена без скидок"
-      - name: loaded_at
-        description: "Время исходной загрузки"
+        data_tests:
+          - not_null
