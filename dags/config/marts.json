@@ -1,0 +1,18 @@
+[
+  {
+    "model": "mart_sales_weather_hourly",
+    "source_schema": "marts",
+    "source_table": "mart_sales_weather_hourly",
+    "target_database": "marts",
+    "target_table": "mart_sales_weather_hourly",
+    "ddl_file": "mart_sales_weather_hourly.sql",
+    "columns": [
+      "city_key", "date_key", "hour", "measured_at",
+      "temperature_c", "apparent_temperature_c", "precipitation_mm",
+      "surface_pressure_hpa", "sales_count", "total_revenue_rub",
+      "average_check_rub", "city_slug", "city_name", "sales_date"
+    ],
+    "unique_key": ["city_key", "date_key", "hour"],
+    "sum_columns": ["sales_count", "total_revenue_rub"]
+  }
+]

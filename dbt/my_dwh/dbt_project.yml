@@ -1,5 +1,6 @@
 name: 'my_dwh'
 version: '1.0.0'
+config-version: 2
 
 
 profile: 'my_dwh'
@@ -22,3 +23,9 @@ models:
     staging:
       +materialized: view
       +schema: stg
+    core:
+      +materialized: table
+      +schema: core
+    marts:
+      +materialized: table
+      +schema: marts
