@@ -6,17 +6,18 @@ from airflow.sdk import dag, task
 
 @dag(
     dag_id="publish_marts_to_clickhouse",
-    description="Build PostgreSQL marts with dbt and publish them to ClickHouse",
+    description="Refresh marts from prepared core and publish all configured tables to ClickHouse",
     schedule="20 * * * *",
     start_date=pendulum.datetime(2026, 9, 28, tz="UTC"),
     catchup=False,
     max_active_runs=1,
     max_active_tasks=1,
+    dagrun_timeout=timedelta(minutes=50),
     default_args={
         "owner": "airflow",
         "retries": 2,
         "retry_delay": timedelta(minutes=2),
-        "execution_timeout": timedelta(minutes=50),
+        "execution_timeout": timedelta(minutes=20),
     },
     tags=["dbt", "marts", "clickhouse"],
 )

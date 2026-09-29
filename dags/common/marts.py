@@ -5,8 +5,10 @@ import logging
 import os
 import re
 import shutil
+import signal
 import subprocess
 import tempfile
+from contextlib import closing
 from datetime import date, datetime, timezone
 from decimal import Decimal
 from pathlib import Path
@@ -35,11 +37,37 @@ def load_marts() -> list[dict]:
             identifier(mart[name])
         for name in mart["columns"] + mart["unique_key"] + mart["sum_columns"]:
             identifier(name)
+        if len(mart["columns"]) != len(set(mart["columns"])):
+            raise ValueError(f"Duplicate columns in {mart['model']}")
+        if not mart["unique_key"] or not set(mart["unique_key"] + mart["sum_columns"]).issubset(mart["columns"]):
+            raise ValueError(f"Invalid keys or totals in {mart['model']}")
+        ddl_file = mart["ddl_file"]
+        if Path(ddl_file).name != ddl_file or not ddl_file.endswith(".sql"):
+            raise ValueError(f"Invalid DDL filename: {ddl_file}")
+        if not (DAGS_DIR / "sql" / "clickhouse" / ddl_file).is_file():
+            raise ValueError(f"Missing DDL file: {ddl_file}")
         target = (mart["target_database"], mart["target_table"])
         if target in targets:
             raise ValueError(f"Duplicate target: {target}")
         targets.add(target)
     return marts
+
+
+def run_command(command: list[str], environment: dict, timeout: int) -> None:
+    log.info("Running: %s", " ".join(command))
+    process = subprocess.Popen(command, env=environment, start_new_session=True)
+    try:
+        return_code = process.wait(timeout=timeout)
+        if return_code:
+            raise subprocess.CalledProcessError(return_code, command)
+    finally:
+        if process.poll() is None:
+            os.killpg(process.pid, signal.SIGTERM)
+            try:
+                process.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                os.killpg(process.pid, signal.SIGKILL)
+                process.wait()
 
 
 def run_dbt(marts: list[dict]) -> None:
@@ -50,6 +78,8 @@ def run_dbt(marts: list[dict]) -> None:
         "DWH_POSTGRES_PASSWORD": connection.password,
         "DWH_POSTGRES_DB": connection.schema,
         "DBT_SEND_ANONYMOUS_USAGE_STATS": "false",
+        "PGAPPNAME": "publish_marts_dbt",
+        "PGOPTIONS": "-c statement_timeout=600000 -c lock_timeout=30000",
     })
     executable = "/opt/airflow/dbt-venv/bin/dbt"
     source = Path("/opt/airflow/dbt/my_dwh")
@@ -59,14 +89,22 @@ def run_dbt(marts: list[dict]) -> None:
         project = Path(directory) / "my_dwh"
         shutil.copytree(source, project, ignore=shutil.ignore_patterns("target", "logs", ".user.yml"))
         common = ["--project-dir", str(project), "--profiles-dir", str(project)]
-        commands = [
-            [executable, "deps", *common],
-            [executable, "run", *common, "--threads", "1", "--select",
-             *["+" + mart["model"] for mart in marts]],
-        ]
-        for command in commands:
-            log.info("Running: %s", " ".join(command))
-            subprocess.run(command, env=environment, check=True, timeout=2400)
+        run_command([executable, "deps", *common], environment, timeout=180)
+        # Core is prepared separately. A leading '+' would rebuild all its history.
+        models = [mart["model"] for mart in marts]
+        run_command(
+            [executable, "run", *common, "--threads", "1", "--select", *models],
+            environment,
+            timeout=900,
+        )
+        results = json.loads((project / "target" / "run_results.json").read_text())
+        completed = {
+            result["unique_id"].split(".")[-1]
+            for result in results["results"] if result["status"] == "success"
+        }
+        missing = set(models) - completed
+        if missing:
+            raise RuntimeError(f"dbt did not build configured marts: {sorted(missing)}")
 
 
 def clickhouse_query(session: requests.Session, query: str, data=None) -> str:
@@ -76,9 +114,10 @@ def clickhouse_query(session: requests.Session, query: str, data=None) -> str:
         f"http://{host}:{port}/",
         params={"query": query, "date_time_input_format": "best_effort", "wait_end_of_query": "1"},
         data=data,
-        timeout=(10, 1200),
+        timeout=(10, 600),
     )
-    response.raise_for_status()
+    if not response.ok:
+        raise RuntimeError(f"ClickHouse HTTP {response.status_code}: {response.text[:2000]}")
     return response.text.strip()
 
 
@@ -113,10 +152,12 @@ def publish_mart(mart: dict) -> dict:
 
     with requests.Session() as session:
         session.auth = (os.environ["CLICKHOUSE_USER"], os.environ["CLICKHOUSE_PASSWORD"])
-        with hook.get_conn() as connection:
+        with closing(hook.get_conn()) as connection:
             connection.autocommit = True
             with connection.cursor() as cursor:
                 cursor.execute("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY")
+                cursor.execute("SET LOCAL statement_timeout = '5min'")
+                cursor.execute("SET LOCAL lock_timeout = '30s'")
                 cursor.execute("SELECT pg_try_advisory_xact_lock(hashtext(%s))", (target,))
                 if not cursor.fetchone()[0]:
                     raise RuntimeError(f"Another publication is running for {target}")
@@ -124,6 +165,7 @@ def publish_mart(mart: dict) -> dict:
                 expected = cursor.fetchone()
                 if expected[0] == 0:
                     raise ValueError(f"Refusing to publish an empty mart: {source}")
+                log.info("Exporting %s rows from %s to %s", expected[0], source, target)
 
             engine = clickhouse_query(
                 session, f"SELECT engine FROM system.databases WHERE name = '{database}'"
@@ -148,7 +190,7 @@ def publish_mart(mart: dict) -> dict:
 
             actual = json.loads(clickhouse_query(
                 session, f"SELECT {statistics} FROM {staging} FORMAT JSONEachRow"
-            ))
+            ), parse_float=Decimal)
             fields = ["row_count", *mart["sum_columns"]]
             for field, value in zip(fields, expected):
                 if Decimal(str(actual[field])) != Decimal(str(value)):
@@ -168,4 +210,7 @@ def publish_mart(mart: dict) -> dict:
                 cursor.execute("COMMIT")
 
     log.info("Published %s: %s", target, actual)
-    return {"table": target, **actual}
+    return {
+        "table": target,
+        **{name: str(value) if isinstance(value, Decimal) else value for name, value in actual.items()},
+    }
