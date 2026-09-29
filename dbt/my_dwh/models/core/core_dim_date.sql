@@ -19,7 +19,7 @@ final as (
         trim(to_char(calendar_date, 'Day')) as weekday,
         extract(isodow from calendar_date) in (6, 7) as is_weekend
 
-    from source  -- ← было date_spine
+    from source
 
 )
 

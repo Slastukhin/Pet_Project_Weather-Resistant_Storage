@@ -1,0 +1,4 @@
+-r dbt-requirements.txt
+ruff==0.11.13
+PyYAML==6.0.2
+requests==2.32.4

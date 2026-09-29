@@ -14,15 +14,18 @@ x-airflow-common: &airflow-common
     AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql+psycopg2://airflow:airflow@airflow-db/airflow
     AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
     AIRFLOW__CELERY__WORKER_CONCURRENCY: 4
-    AIRFLOW__CORE__FERNET_KEY: ${FERNET_KEY:?FERNET_KEY is required — see .env.example}
-    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+    AIRFLOW__CORE__FERNET_KEY: ${FERNET_KEY:-MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=}
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'false'
     AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
     AIRFLOW__CORE__EXECUTION_API_SERVER_URL: 'http://airflow-apiserver:8080/execution/'
     AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW__API_AUTH__JWT_SECRET:-airflow_jwt_secret}
     AIRFLOW__API_AUTH__JWT_ISSUER: ${AIRFLOW__API_AUTH__JWT_ISSUER:-airflow}
+    AIRFLOW__API__SECRET_KEY: ${AIRFLOW__API__SECRET_KEY:-weather-demo-api-secret}
     AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
     AIRFLOW_CONFIG: '/opt/airflow/config/airflow.cfg'
     _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
+    DBT_PACKAGES_INSTALL_PATH: /opt/airflow/dbt-cache/dbt_packages
+    DBT_SEND_ANONYMOUS_USAGE_STATS: 'false'
 
     # --- Готовый Airflow Connection к DWH: не надо кликать в UI ---
     AIRFLOW_CONN_DWH_POSTGRES: >-
@@ -39,12 +42,14 @@ x-airflow-common: &airflow-common
     # --- Kaggle: CLI сам читает эту переменную, файл ~/.kaggle не нужен ---
     KAGGLE_API_TOKEN: ${KAGGLE_API_TOKEN:-}
   volumes:
-    - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
+    - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags:ro
     - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
-    - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
-    - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
-    - ${AIRFLOW_PROJ_DIR:-.}/dbt:/opt/airflow/dbt
-    - ~/.kaggle:/home/airflow/.kaggle
+    - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config:ro
+    - ${AIRFLOW_PROJ_DIR:-.}/dbt:/opt/airflow/dbt:ro
+    - ./scripts:/opt/project/scripts:ro
+    - ./demo:/opt/project/demo:ro
+    - ./tests:/opt/project/tests:ro
+    - project-state:/opt/project/state
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on: &airflow-common-depends-on
     redis:
@@ -199,7 +204,7 @@ services:
       - dwh-postgres-data:/var/lib/postgresql/data
     ports:
       # 5433 снаружи, чтобы не драться с локальным Postgres на маке
-      - "${DWH_POSTGRES_PORT:-5433}:5432"
+      - "127.0.0.1:${DWH_POSTGRES_PORT:-5433}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
@@ -225,8 +230,8 @@ services:
       - clickhouse-data:/var/lib/clickhouse
       - clickhouse-logs:/var/log/clickhouse-server
     ports:
-      - "${CLICKHOUSE_HTTP_PORT:-8123}:8123"   # HTTP: сюда ходят Metabase и твои загрузчики
-      - "${CLICKHOUSE_TCP_PORT:-9000}:9000"    # нативный протокол (порт часто занят — меняй левую часть)
+      - "127.0.0.1:${CLICKHOUSE_HTTP_PORT:-8123}:8123"
+      - "127.0.0.1:${CLICKHOUSE_TCP_PORT:-9000}:9000"
     ulimits:
       nofile: {soft: 262144, hard: 262144}
     healthcheck:
@@ -274,11 +279,8 @@ services:
       MB_DB_PASS: metabase
       # без -Xmx JVM возьмёт четверть хоста и её прибьёт лимитом ниже
       JAVA_OPTS: -Xmx1g
-    volumes:
-      # сюда положи clickhouse.metabase-driver.jar, иначе CH не подключить
-      - ./metabase-plugins:/plugins
     ports:
-      - "${METABASE_PORT:-3000}:3000"
+      - "127.0.0.1:${METABASE_PORT:-3000}:3000"
     healthcheck:
       test: ["CMD-SHELL", "curl --fail -I http://localhost:3000/api/health || exit 1"]
       interval: 15s
@@ -300,25 +302,28 @@ services:
   # docker compose --profile tools run --rm dbt run
   # ============================================================
   dbt:
-    image: ghcr.io/dbt-labs/dbt-postgres:1.8.2
-    # У dbt-labs нет ARM-сборок — на Apple Silicon работает через эмуляцию Rosetta.
-    platform: linux/amd64
-    # dbt — не демон, а CLI. Контейнер поднимается вместе со стеком и просто
-    # ждёт; команды запускаются внутри него:
-    #   docker compose exec dbt dbt run
-    entrypoint: ["/bin/bash", "-c", "sleep infinity"]
+    image: ${AIRFLOW_IMAGE_NAME:-weather-dwh-airflow:3.3.1}
+    build: .
+    entrypoint: ["/bin/bash", "-c", "exec sleep infinity"]
     environment:
-      DBT_PROFILES_DIR: /usr/app/dbt/my_dwh/
+      PATH: /opt/airflow/dbt-venv/bin:/home/airflow/.local/bin:/usr/local/bin:/usr/bin:/bin
+      DBT_PROFILES_DIR: /usr/app/dbt/my_dwh
+      DBT_PACKAGES_INSTALL_PATH: /opt/airflow/dbt-cache/dbt_packages
+      DBT_TARGET_PATH: /tmp/dbt-target
+      DBT_LOG_PATH: /tmp/dbt-logs
+      DBT_SEND_ANONYMOUS_USAGE_STATS: 'false'
       DWH_POSTGRES_USER: ${DWH_POSTGRES_USER:-dwh}
       DWH_POSTGRES_PASSWORD: ${DWH_POSTGRES_PASSWORD:-dwh}
       DWH_POSTGRES_DB: ${DWH_POSTGRES_DB:-dwh}
     volumes:
-      - ./dbt:/usr/app/dbt          # весь dbt-проект, включая profiles.yml
+      - ./dbt:/usr/app/dbt:ro
     working_dir: /usr/app/dbt/my_dwh
     restart: always
     depends_on:
       dwh-postgres:
         condition: service_healthy
+      project-init:
+        condition: service_completed_successfully
     deploy:
       resources:
         limits: {memory: 1G}
@@ -332,8 +337,8 @@ services:
     command:
       - -c
       - |
-        mkdir -p /opt/airflow/{logs,dags,plugins,config,dbt}
-        chown -R "${AIRFLOW_UID:-50000}:0" /opt/airflow
+        mkdir -p /opt/airflow/logs /opt/project/state
+        chown -R "${AIRFLOW_UID:-50000}:0" /opt/airflow/logs /opt/project/state
         exec /entrypoint airflow version
     environment:
       <<: *airflow-common-env
@@ -348,7 +353,7 @@ services:
     <<: *airflow-common
     command: api-server
     ports:
-      - "${AIRFLOW_PORT:-8080}:8080"
+      - "127.0.0.1:${AIRFLOW_PORT:-8080}:8080"
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8080/api/v2/monitor/health"]
       interval: 30s
@@ -377,6 +382,8 @@ services:
     depends_on:
       <<: *airflow-common-depends-on
       airflow-init:
+        condition: service_completed_successfully
+      project-init:
         condition: service_completed_successfully
     deploy:
       resources:
@@ -423,6 +430,8 @@ services:
         condition: service_healthy
       airflow-init:
         condition: service_completed_successfully
+      project-init:
+        condition: service_completed_successfully
     deploy:
       resources:
         limits: {memory: 2G}
@@ -455,12 +464,44 @@ services:
     depends_on:
       <<: *airflow-common-depends-on
 
+  project-init:
+    <<: *airflow-common
+    entrypoint: ["python", "/opt/project/scripts/bootstrap.py"]
+    environment:
+      <<: *airflow-common-env
+      DWH_POSTGRES_HOST: dwh-postgres
+      DWH_POSTGRES_PORT: '5432'
+      DWH_POSTGRES_USER: ${DWH_POSTGRES_USER:-dwh}
+      DWH_POSTGRES_PASSWORD: ${DWH_POSTGRES_PASSWORD:-dwh}
+      DWH_POSTGRES_DB: ${DWH_POSTGRES_DB:-dwh}
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+      dwh-postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+
+  metabase-init:
+    <<: *airflow-common
+    entrypoint: ["python", "/opt/project/scripts/import_dashboards.py"]
+    environment:
+      <<: *airflow-common-env
+      METABASE_URL: http://metabase:3000
+      METABASE_ADMIN_EMAIL: ${METABASE_ADMIN_EMAIL:-admin@example.com}
+      METABASE_ADMIN_PASSWORD: ${METABASE_ADMIN_PASSWORD:-WeatherDemo2026!}
+    depends_on:
+      project-init:
+        condition: service_completed_successfully
+      metabase:
+        condition: service_healthy
+
   flower:
     <<: *airflow-common
     command: celery flower
     profiles: ["flower"]
     ports:
-      - "5555:5555"
+      - "127.0.0.1:5555:5555"
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:5555/"]
       interval: 30s
@@ -479,3 +520,4 @@ volumes:
   clickhouse-data:
   clickhouse-logs:
   metabase-db-data:
+  project-state:

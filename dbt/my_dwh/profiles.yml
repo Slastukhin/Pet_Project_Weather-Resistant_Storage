@@ -3,8 +3,8 @@ my_dwh:
   outputs:
     dev:
       type: postgres
-      host: dwh-postgres
-      port: 5432
+      host: "{{ env_var('DBT_POSTGRES_HOST', 'dwh-postgres') }}"
+      port: "{{ env_var('DBT_POSTGRES_PORT', '5432') | int }}"
       user: "{{ env_var('DWH_POSTGRES_USER', 'dwh') }}"
       password: "{{ env_var('DWH_POSTGRES_PASSWORD', 'dwh') }}"
       dbname: "{{ env_var('DWH_POSTGRES_DB', 'dwh') }}"

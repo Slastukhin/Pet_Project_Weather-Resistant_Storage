@@ -14,7 +14,6 @@ from decimal import Decimal
 from pathlib import Path
 
 import requests
-from airflow.providers.postgres.hooks.postgres import PostgresHook
 
 log = logging.getLogger(__name__)
 DAGS_DIR = Path(__file__).resolve().parents[1]
@@ -71,12 +70,16 @@ def run_command(command: list[str], environment: dict, timeout: int) -> None:
 
 
 def run_dbt(marts: list[dict]) -> None:
+    from airflow.providers.postgres.hooks.postgres import PostgresHook
+
     connection = PostgresHook(postgres_conn_id="dwh_postgres").get_connection("dwh_postgres")
     environment = os.environ.copy()
     environment.update({
         "DWH_POSTGRES_USER": connection.login,
         "DWH_POSTGRES_PASSWORD": connection.password,
         "DWH_POSTGRES_DB": connection.schema,
+        "DBT_POSTGRES_HOST": connection.host,
+        "DBT_POSTGRES_PORT": str(connection.port or 5432),
         "DBT_SEND_ANONYMOUS_USAGE_STATS": "false",
         "PGAPPNAME": "publish_marts_dbt",
         "PGOPTIONS": "-c statement_timeout=600000 -c lock_timeout=30000",
@@ -89,11 +92,12 @@ def run_dbt(marts: list[dict]) -> None:
         project = Path(directory) / "my_dwh"
         shutil.copytree(source, project, ignore=shutil.ignore_patterns("target", "logs", ".user.yml"))
         common = ["--project-dir", str(project), "--profiles-dir", str(project)]
-        run_command([executable, "deps", *common], environment, timeout=180)
-        # Core is prepared separately. A leading '+' would rebuild all its history.
+        packages = Path(environment.get("DBT_PACKAGES_INSTALL_PATH", project / "dbt_packages"))
+        if not (packages / "dbt_utils" / "dbt_project.yml").is_file():
+            run_command([executable, "deps", *common], environment, timeout=180)
         models = [mart["model"] for mart in marts]
         run_command(
-            [executable, "run", *common, "--threads", "1", "--select", *models],
+            [executable, "build", *common, "--threads", "2"],
             environment,
             timeout=900,
         )
@@ -141,6 +145,8 @@ def stream_rows(cursor, columns: list[str]):
 
 
 def publish_mart(mart: dict) -> dict:
+    from airflow.providers.postgres.hooks.postgres import PostgresHook
+
     source = f"{mart['source_schema']}.{mart['source_table']}"
     database = mart["target_database"]
     target = f"{database}.{mart['target_table']}"

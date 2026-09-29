@@ -4,6 +4,7 @@ config-version: 2
 
 
 profile: 'my_dwh'
+packages-install-path: "{{ env_var('DBT_PACKAGES_INSTALL_PATH', 'dbt_packages') }}"
 
 
 model-paths: ["models"]

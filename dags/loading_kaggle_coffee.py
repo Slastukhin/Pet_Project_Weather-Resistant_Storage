@@ -21,9 +21,10 @@ DOWNLOAD_TIMEOUT_SEC = 300
 
 @dag(
     dag_id="load_kaggle_coffee",
-    description="Загрузка датасета продаж кофе с Kaggle в RAW (TRUNCATE + COPY)",
+    description="Однократная загрузка датасета продаж кофе с Kaggle в RAW",
     schedule=None,
     catchup=False,
+    max_active_runs=1,
     default_args={
         "owner": "airflow",
         "retries": 2,
@@ -42,6 +43,11 @@ def load_kaggle_coffee():
     @task
     def download_and_load() -> int:
         """Скачать архив с Kaggle, распаковать, залить CSV в raw.kaggle_coffee."""
+        hook = PostgresHook(postgres_conn_id=DWH_CONN_ID)
+        rows = hook.get_first("SELECT count(*) FROM raw.kaggle_coffee")[0]
+        if rows:
+            log.info("Датасет уже загружен: %s строк", rows)
+            return rows
         # Временная папка живёт только внутри with и удаляется сама.
         with tempfile.TemporaryDirectory(prefix="kaggle_coffee_") as tmp_dir:
             log.info("Скачивание датасета %s", KAGGLE_DATASET)
@@ -68,16 +74,15 @@ def load_kaggle_coffee():
             csv_path = os.path.join(tmp_dir, csv_files[0])
             log.info("Найден CSV: %s", csv_path)
 
-            hook = PostgresHook(postgres_conn_id=DWH_CONN_ID)
-
-            # Полная перезаливка: датасет статичный, дифф не нужен.
-            hook.run("TRUNCATE TABLE raw.kaggle_coffee;")
-
-            # copy_expert сам открывает файл по пути.
-            hook.copy_expert(
-                "COPY raw.kaggle_coffee FROM STDIN WITH (FORMAT CSV, HEADER true, DELIMITER ',')",
-                csv_path,
-            )
+            with hook.get_conn() as connection:
+                with connection.cursor() as cursor:
+                    cursor.execute("LOCK TABLE raw.kaggle_coffee IN EXCLUSIVE MODE")
+                    cursor.execute("SELECT count(*) FROM raw.kaggle_coffee")
+                    if cursor.fetchone()[0] == 0:
+                        with cursor.copy("COPY raw.kaggle_coffee FROM STDIN WITH (FORMAT CSV, HEADER true)") as copy:
+                            with open(csv_path, "rb") as source:
+                                while chunk := source.read(65536):
+                                    copy.write(chunk)
 
             rows = hook.get_first("SELECT count(*) FROM raw.kaggle_coffee")[0]
             if rows == 0:

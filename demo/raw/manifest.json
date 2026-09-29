@@ -1,0 +1,17 @@
+{
+  "tables": [
+    "cities",
+    "kaggle_coffee",
+    "weather_archive",
+    "weather_forecast",
+    "synthetic_coffee_sales"
+  ],
+  "files": {
+    "schema.sql": "893d418b5c5a5fdd61cf04d9c2bb9d379233268e396a3b203f11e1db6a728b2f",
+    "cities.csv.gz": "588587d4d796ab1f83a5674ed0fdd4b138e0a2aea08626bbb43a807fcde57b3d",
+    "kaggle_coffee.csv.gz": "08558213aa3b460d37328409e44d0e350ffb6a9e174432c02faf44c7a3cddd99",
+    "synthetic_coffee_sales.csv.gz": "98a8087795d1709c1621e0a865d8ffb833c883710c5e9189e646b603710a74e2",
+    "weather_archive.csv.gz": "7bdd0c31b67f80acd45ad34249ad5a75bbc5c8b25724a3e81dbefd49eb987786",
+    "weather_forecast.csv.gz": "af7829237c5eefc16545ae207e10e1ca04608a1f77d4ae188dc1385412af0c4f"
+  }
+}

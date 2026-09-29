@@ -2,6 +2,10 @@ version: 2
 
 models:
   - name: mart_sales_weather_hourly
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [city_key, date_key, hour]
     description: >
       Почасовая витрина продаж и исторической погоды.
       Одна строка на город, местную дату и час.
@@ -65,6 +69,10 @@ models:
           Для более крупного периода пересчитывается как выручка / число продаж.
 
   - name: mart_product_sales_daily
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [city_key, date_key, product_key]
     description: >
       Ежедневные продажи по продуктам.
       Одна строка на город, местную дату и продукт.
@@ -127,6 +135,10 @@ models:
           Для другого периода долю необходимо пересчитывать.
 
   - name: mart_sales_weather_daily
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [city_key, date_key]
     description: >
       Ежедневная сводка продаж и исторической погоды.
       Одна строка на город и местную дату с продажами.

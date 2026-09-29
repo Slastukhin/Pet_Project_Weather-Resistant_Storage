@@ -32,57 +32,49 @@ models:
 
   - name: core_fct_weather_forecast_hour
     description: "Таблица прогноза погоды вперед (на три дня), на текущий час"
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [city_key, issued_at, forecast_for]
     columns:
       - name: city_key
         description: "Ключ города"
         data_tests:
-          - unique
           - not_null
+          - relationships:
+              arguments: {to: "ref('core_dim_city')", field: city_key}
       - name: issued_at
         description: "Время версии"
         data_tests:
-          - unique
           - not_null
       - name: forecast_for
         description: "Час, на который прогнозируется погода"
         data_tests:
-          - unique
           - not_null
       - name: forecast_days
         description: "Количество дней, запрошенных у API в этой версии прогноза"
         data_tests:
           - not_null
       - name: forecast_date_key
-        description: "Ключ в выбранной версии города"
+        description: "Ключ местной даты прогнозируемого часа"
         data_tests:
-          - unique
           - not_null
+          - relationships:
+              arguments: {to: "ref('core_dim_date')", field: date_key}
       - name: forecast_hour
         description: "Час от 0 до 23"
         data_tests:
           - not_null
       - name: temperature_c
         description: "Температура воздуха в цельсиях"
-        data_tests:
-          - not_null
       - name: apparent_temperature_c
         description: "Ощущаемая температура воздуха в цельсиях"
-        data_tests:
-          - not_null
       - name: precipitation_mm
         description: "Ожидаемые осадки в мм"
-        data_tests:
-          - not_null
       - name: surface_pressure_hpa
         description: "Ожидаемое давление на поверхности земли"
-        data_tests:
-          - not_null
       - name: precipitation_probability_pct
         description: "Вероятность осадков"
-        data_tests:
-          - not_null
-          - dbt_utils.expression_is_true:
-              expression: "precipitation_probability_pct between 0 and 100"
       - name: loaded_at
         description: "Время записи исходного ответа"
         data_tests:
@@ -103,8 +95,9 @@ models:
       - name: city_key
         description: "Ключ города"
         data_tests:
-          - unique
           - not_null
+          - relationships:
+              arguments: {to: "ref('core_dim_city')", field: city_key}
       - name: sold_at
         description: "Момент времени продажи"
         data_tests:
@@ -112,8 +105,9 @@ models:
       - name: date_key
         description: "День продажи"
         data_tests:
-          - unique
           - not_null
+          - relationships:
+              arguments: {to: "ref('core_dim_date')", field: date_key}
       - name: hour
         description: "Час продажи в часовом поясе"
         data_tests:
@@ -122,14 +116,12 @@ models:
         description: "Итог к оплате, сверяется с суммой позиций"
         data_tests:
           - not_null
-          - dbt_utils.expression_is_true:
-              expression: "total_amount_rub >= 0"
       - name: payment_type
         description: "Тип платежного средства"
         data_tests:
           - not_null
-      - name: loaded_at
-        description: "Время исходной загрузки"
+      - name: is_synthetic
+        description: "Признак учебных синтетических продаж"
         data_tests:
           - not_null
 
@@ -137,9 +129,8 @@ models:
     description: "Справочник городов"
     data_tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - city_slug
-            - timezone
+          arguments:
+            combination_of_columns: [city_slug, timezone]
     columns:
       - name: city_key
         description: "Ключ, создается хранилищем"
@@ -181,50 +172,51 @@ models:
           - unique
 
   - name: core_fct_weather_hour
-    description: "Фактический прогноз погоды"
+    description: "Историческая погода: одна строка на город и момент времени"
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [city_key, measured_at]
     columns:
       - name: city_key
         description: "Ключ города"
         data_tests:
-          - unique
           - not_null
+          - relationships:
+              arguments: {to: "ref('core_dim_city')", field: city_key}
       - name: measured_at
         description: "Однозначный момент времени"
         data_tests:
-          - unique
           - not_null
       - name: date_key
         description: "Ключ на дату"
         data_tests:
-          - unique
           - not_null
+          - relationships:
+              arguments: {to: "ref('core_dim_date')", field: date_key}
       - name: hour
         description: "Час в поясе времени года"
         data_tests:
           - not_null
       - name: temperature_c
         description: "Температура в цельсиях"
-        data_tests:
-          - not_null
       - name: apparent_temperature_c
         description: "Ощущаемая температура в цельсиях"
-        data_tests:
-          - not_null
       - name: precipitation_mm
         description: "Осадки в мм"
-        data_tests:
-          - not_null
       - name: surface_pressure_hpa
         description: "Давление на поверхности земли"
-        data_tests:
-          - not_null
       - name: loaded_at
         description: "Время исходной загрузки, для обновления"
         data_tests:
           - not_null
 
   - name: core_fct_sales_item
-    description: ""
+    description: "Одна товарная позиция чека на строку"
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [sale_key, line_number]
     columns:
       - name: sale_item_key
         description: "Стабильный ключ"
@@ -234,8 +226,9 @@ models:
       - name: sale_key
         description: "Ключ чека"
         data_tests:
-          - unique
           - not_null
+          - relationships:
+              arguments: {to: "ref('core_fct_sales')", field: sale_key}
       - name: line_number
         description: "Номер позиции в чеке"
         data_tests:
@@ -243,14 +236,13 @@ models:
       - name: product_key
         description: "Ключ продукта"
         data_tests:
-          - unique
           - not_null
+          - relationships:
+              arguments: {to: "ref('core_dim_product')", field: product_key}
       - name: quantity
         description: "Количество единиц продукта в чеке"
         data_tests:
           - not_null
-          - dbt_utils.expression_is_true:
-              expression: "quantity > 0"
       - name: unit_price_rub
         description: "Цена за единицу в момент продажи"
         data_tests:

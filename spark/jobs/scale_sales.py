@@ -1,3 +1,4 @@
+import argparse
 import os
 
 from pyspark.sql import DataFrame, SparkSession
@@ -271,6 +272,9 @@ def write_postgres_table(
 # ----------------------           MAIN ФУНКЦИЯ           ---------------------------------------------------------------------------
 # -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--check-only", action="store_true")
+    args = parser.parse_args()
     # --- создаём Spark-сессию для чтения и обработки данных ---
     spark = create_spark_session()
 
@@ -313,6 +317,9 @@ def main() -> None:
             expected_count
         )
         print("Проверки пройдены")
+
+        if args.check_only:
+            return
 
         # --- Выполняем запись в БД ---
         write_postgres_table(
