@@ -1,0 +1,50 @@
+[
+  {
+    "model": "mart_sales_weather_hourly",
+    "source_schema": "marts",
+    "source_table": "mart_sales_weather_hourly",
+    "target_database": "marts",
+    "target_table": "mart_sales_weather_hourly",
+    "ddl_file": "mart_sales_weather_hourly.sql",
+    "columns": [
+      "city_key", "date_key", "hour", "measured_at",
+      "temperature_c", "apparent_temperature_c", "precipitation_mm",
+      "surface_pressure_hpa", "sales_count", "total_revenue_rub",
+      "average_check_rub", "city_slug", "city_name", "sales_date"
+    ],
+    "unique_key": ["city_key", "date_key", "hour"],
+    "sum_columns": ["sales_count", "total_revenue_rub"]
+  },
+  {
+    "model": "mart_product_sales_daily",
+    "source_schema": "marts",
+    "source_table": "mart_product_sales_daily",
+    "target_database": "marts",
+    "target_table": "mart_product_sales_daily",
+    "ddl_file": "mart_product_sales_daily.sql",
+    "columns": [
+      "city_key", "city_slug", "city_name", "date_key", "sales_date",
+      "product_key", "product_name", "units_sold", "receipts_count",
+      "product_revenue_rub", "average_unit_price_rub", "revenue_share_pct"
+    ],
+    "unique_key": ["city_key", "date_key", "product_key"],
+    "sum_columns": ["units_sold", "receipts_count", "product_revenue_rub"]
+  },
+  {
+    "model": "mart_sales_weather_daily",
+    "source_schema": "marts",
+    "source_table": "mart_sales_weather_daily",
+    "target_database": "marts",
+    "target_table": "mart_sales_weather_daily",
+    "ddl_file": "mart_sales_weather_daily.sql",
+    "columns": [
+      "city_key", "city_slug", "city_name", "date_key", "sales_date",
+      "weekday", "is_weekend", "sales_count", "total_revenue_rub",
+      "average_check_rub", "avg_temperature_c", "min_temperature_c",
+      "max_temperature_c", "total_precipitation_mm",
+      "temperature_hours_count", "precipitation_hours_count"
+    ],
+    "unique_key": ["city_key", "date_key"],
+    "sum_columns": ["sales_count", "total_revenue_rub"]
+  }
+]

@@ -1,0 +1,215 @@
+version: 2
+
+models:
+  - name: mart_sales_weather_hourly
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [city_key, date_key, hour]
+    description: >
+      Почасовая витрина продаж и исторической погоды.
+      Одна строка на город, местную дату и час.
+      Продажи синтетические, погода получена из Open-Meteo.
+
+    columns:
+      - name: city_key
+        description: "Ключ города из core_dim_city."
+        data_tests: [not_null]
+
+      - name: city_slug
+        description: "Техническое название города."
+        data_tests: [not_null]
+
+      - name: city_name
+        description: "Название города для отображения в отчётах."
+        data_tests: [not_null]
+
+      - name: date_key
+        description: "Ключ местной даты из core_dim_date."
+        data_tests: [not_null]
+
+      - name: sales_date
+        description: "Календарная дата в часовом поясе города."
+        data_tests: [not_null]
+
+      - name: hour
+        description: "Час в часовом поясе города, от 0 до 23."
+        data_tests: [not_null]
+
+      - name: measured_at
+        description: "Момент времени, к которому относятся погодные показатели."
+        data_tests: [not_null]
+
+      - name: temperature_c
+        description: "Температура воздуха за соответствующий час, градусы Цельсия."
+
+      - name: apparent_temperature_c
+        description: "Ощущаемая температура, градусы Цельсия."
+
+      - name: precipitation_mm
+        description: "Количество осадков за соответствующий час, миллиметры."
+
+      - name: surface_pressure_hpa
+        description: "Давление на поверхности, гектопаскали."
+
+      - name: sales_count
+        description: >
+          Количество продаж за город и час.
+          В текущей модели одна продажа соответствует одному учебному чеку.
+        data_tests: [not_null]
+
+      - name: total_revenue_rub
+        description: "Сумма продаж за город и час в условных учебных рублях."
+        data_tests: [not_null]
+
+      - name: average_check_rub
+        description: >
+          Средняя сумма чека за город и час.
+          При отсутствии продаж значение NULL.
+          Для более крупного периода пересчитывается как выручка / число продаж.
+
+  - name: mart_product_sales_daily
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [city_key, date_key, product_key]
+    description: >
+      Ежедневные продажи по продуктам.
+      Одна строка на город, местную дату и продукт.
+      Содержит только сочетания, для которых существуют продажи.
+      Данные о продажах синтетические.
+
+    columns:
+      - name: city_key
+        description: "Ключ города продажи."
+        data_tests: [not_null]
+
+      - name: city_slug
+        description: "Техническое название города."
+        data_tests: [not_null]
+
+      - name: city_name
+        description: "Название города для отчётов."
+        data_tests: [not_null]
+
+      - name: date_key
+        description: "Ключ местной даты продажи."
+        data_tests: [not_null]
+
+      - name: sales_date
+        description: "Местная календарная дата продажи."
+        data_tests: [not_null]
+
+      - name: product_key
+        description: "Ключ продукта из core_dim_product."
+        data_tests: [not_null]
+
+      - name: product_name
+        description: "Название проданного продукта."
+        data_tests: [not_null]
+
+      - name: units_sold
+        description: "Количество проданных единиц продукта за день в городе."
+        data_tests: [not_null]
+
+      - name: receipts_count
+        description: >
+          Количество разных чеков, содержащих этот продукт.
+          При многопозиционных чеках нельзя складывать этот показатель
+          по продуктам для получения общего количества чеков.
+        data_tests: [not_null]
+
+      - name: product_revenue_rub
+        description: "Сумма стоимости проданных позиций этого продукта."
+        data_tests: [not_null]
+
+      - name: average_unit_price_rub
+        description: >
+          Средняя цена проданной единицы:
+          выручка продукта / количество проданных единиц.
+
+      - name: revenue_share_pct
+        description: >
+          Доля продукта в выручке всех товарных позиций города за этот день,
+          от 0 до 100 процентов.
+          Для другого периода долю необходимо пересчитывать.
+
+  - name: mart_sales_weather_daily
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [city_key, date_key]
+    description: >
+      Ежедневная сводка продаж и исторической погоды.
+      Одна строка на город и местную дату с продажами.
+      Продажи и погода сначала агрегируются отдельно,
+      затем соединяются по городу и дате.
+      Отсутствие погоды не должно удалять продажи.
+
+    columns:
+      - name: city_key
+        description: "Ключ города."
+        data_tests: [not_null]
+
+      - name: city_slug
+        description: "Техническое название города."
+        data_tests: [not_null]
+
+      - name: city_name
+        description: "Название города для отчётов."
+        data_tests: [not_null]
+
+      - name: date_key
+        description: "Ключ местной календарной даты."
+        data_tests: [not_null]
+
+      - name: sales_date
+        description: "Местная календарная дата."
+        data_tests: [not_null]
+
+      - name: weekday
+        description: "Название дня недели из core_dim_date."
+        data_tests: [not_null]
+
+      - name: is_weekend
+        description: >
+          Признак субботы или воскресенья.
+          Государственные праздники не учитываются.
+        data_tests: [not_null]
+
+      - name: sales_count
+        description: "Количество продаж в городе за день."
+        data_tests: [not_null]
+
+      - name: total_revenue_rub
+        description: "Сумма продаж в городе за день."
+        data_tests: [not_null]
+
+      - name: average_check_rub
+        description: "Выручка за день, разделённая на количество продаж за день."
+
+      - name: avg_temperature_c
+        description: "Средняя температура по доступным часовым показаниям дня."
+
+      - name: min_temperature_c
+        description: "Минимальная температура среди доступных часовых показаний дня."
+
+      - name: max_temperature_c
+        description: "Максимальная температура среди доступных часовых показаний дня."
+
+      - name: total_precipitation_mm
+        description: >
+          Сумма осадков по доступным часовым показаниям.
+          При неполных данных не является полной суммой осадков за сутки.
+
+      - name: temperature_hours_count
+        description: >
+          Количество часовых записей с непустой температурой.
+          Позволяет оценить полноту погодных данных за день.
+        data_tests: [not_null]
+
+      - name: precipitation_hours_count
+        description: >
+          Количество часовых записей с непустым количеством осадков,
+          включая часы с нулевыми осадками.
+        data_tests: [not_null]

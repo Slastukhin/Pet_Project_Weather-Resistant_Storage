@@ -1,0 +1,253 @@
+version: 2
+
+models:
+  - name: core_dim_date
+    description: "Календарь: одна строка на один день"
+    columns:
+      - name: date_key
+        description: "Стабильный ключ дня, например 20261009"
+        data_tests:
+          - unique
+          - not_null
+      - name: date
+        description: "Из ряда календарных дней, без часового пояса и времени"
+        data_tests:
+          - unique
+      - name: year
+        description: "Год для группировки отчетов"
+        data_tests:
+          - not_null
+      - name: month
+        description: "Номер месяца"
+        data_tests:
+          - not_null
+      - name: weekday
+        description: "Название дня недели"
+        data_tests:
+          - not_null
+      - name: is_weekend
+        description: "Булевое значение, которое показывает, является ли день недели выходным"
+        data_tests:
+          - not_null
+
+  - name: core_fct_weather_forecast_hour
+    description: "Таблица прогноза погоды вперед (на три дня), на текущий час"
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [city_key, issued_at, forecast_for]
+    columns:
+      - name: city_key
+        description: "Ключ города"
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: "ref('core_dim_city')", field: city_key}
+      - name: issued_at
+        description: "Время версии"
+        data_tests:
+          - not_null
+      - name: forecast_for
+        description: "Час, на который прогнозируется погода"
+        data_tests:
+          - not_null
+      - name: forecast_days
+        description: "Количество дней, запрошенных у API в этой версии прогноза"
+        data_tests:
+          - not_null
+      - name: forecast_date_key
+        description: "Ключ местной даты прогнозируемого часа"
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: "ref('core_dim_date')", field: date_key}
+      - name: forecast_hour
+        description: "Час от 0 до 23"
+        data_tests:
+          - not_null
+      - name: temperature_c
+        description: "Температура воздуха в цельсиях"
+      - name: apparent_temperature_c
+        description: "Ощущаемая температура воздуха в цельсиях"
+      - name: precipitation_mm
+        description: "Ожидаемые осадки в мм"
+      - name: surface_pressure_hpa
+        description: "Ожидаемое давление на поверхности земли"
+      - name: precipitation_probability_pct
+        description: "Вероятность осадков"
+      - name: loaded_at
+        description: "Время записи исходного ответа"
+        data_tests:
+          - not_null
+
+  - name: core_fct_sales
+    description: "Таблица с продажами"
+    columns:
+      - name: sale_key
+        description: "Стабильный ключ чека"
+        data_tests:
+          - unique
+          - not_null
+      - name: source_sale_id
+        description: "Показывает, из какой исходной продажи создан этот чек; одинаков для копий по городам."
+        data_tests:
+          - not_null
+      - name: city_key
+        description: "Ключ города"
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: "ref('core_dim_city')", field: city_key}
+      - name: sold_at
+        description: "Момент времени продажи"
+        data_tests:
+          - not_null
+      - name: date_key
+        description: "День продажи"
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: "ref('core_dim_date')", field: date_key}
+      - name: hour
+        description: "Час продажи в часовом поясе"
+        data_tests:
+          - not_null
+      - name: total_amount_rub
+        description: "Итог к оплате, сверяется с суммой позиций"
+        data_tests:
+          - not_null
+      - name: payment_type
+        description: "Тип платежного средства"
+        data_tests:
+          - not_null
+      - name: is_synthetic
+        description: "Признак учебных синтетических продаж"
+        data_tests:
+          - not_null
+
+  - name: core_dim_city
+    description: "Справочник городов"
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [city_slug, timezone]
+    columns:
+      - name: city_key
+        description: "Ключ, создается хранилищем"
+        data_tests:
+          - unique
+          - not_null
+      - name: city_slug
+        description: "Техническое наименование города"
+        data_tests:
+          - unique
+      - name: city_name
+        description: "Фактическое название города"
+        data_tests:
+          - not_null
+      - name: timezone
+        description: "Часовой/Временной пояс"
+        data_tests:
+          - not_null
+      - name: latitude
+        description: "Широта"
+        data_tests:
+          - not_null
+      - name: longitude
+        description: "Долгота"
+        data_tests:
+          - not_null
+
+  - name: core_dim_product
+    description: "Справочник продуктов"
+    columns:
+      - name: product_key
+        description: "Стабильный ключ, создается хранилищем"
+        data_tests:
+          - unique
+          - not_null
+      - name: product_name
+        description: "Название продукта"
+        data_tests:
+          - unique
+
+  - name: core_fct_weather_hour
+    description: "Историческая погода: одна строка на город и момент времени"
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [city_key, measured_at]
+    columns:
+      - name: city_key
+        description: "Ключ города"
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: "ref('core_dim_city')", field: city_key}
+      - name: measured_at
+        description: "Однозначный момент времени"
+        data_tests:
+          - not_null
+      - name: date_key
+        description: "Ключ на дату"
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: "ref('core_dim_date')", field: date_key}
+      - name: hour
+        description: "Час в поясе времени года"
+        data_tests:
+          - not_null
+      - name: temperature_c
+        description: "Температура в цельсиях"
+      - name: apparent_temperature_c
+        description: "Ощущаемая температура в цельсиях"
+      - name: precipitation_mm
+        description: "Осадки в мм"
+      - name: surface_pressure_hpa
+        description: "Давление на поверхности земли"
+      - name: loaded_at
+        description: "Время исходной загрузки, для обновления"
+        data_tests:
+          - not_null
+
+  - name: core_fct_sales_item
+    description: "Одна товарная позиция чека на строку"
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [sale_key, line_number]
+    columns:
+      - name: sale_item_key
+        description: "Стабильный ключ"
+        data_tests:
+          - unique
+          - not_null
+      - name: sale_key
+        description: "Ключ чека"
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: "ref('core_fct_sales')", field: sale_key}
+      - name: line_number
+        description: "Номер позиции в чеке"
+        data_tests:
+          - not_null
+      - name: product_key
+        description: "Ключ продукта"
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: "ref('core_dim_product')", field: product_key}
+      - name: quantity
+        description: "Количество единиц продукта в чеке"
+        data_tests:
+          - not_null
+      - name: unit_price_rub
+        description: "Цена за единицу в момент продажи"
+        data_tests:
+          - not_null
+      - name: line_amount_rub
+        description: "Цена без скидок"
+        data_tests:
+          - not_null

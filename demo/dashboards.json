@@ -1,0 +1,1504 @@
+{
+  "version": 1,
+  "metabase_version": "v0.55.11",
+  "cards": [
+    {
+      "id": 29,
+      "name": "Выручка по дням",
+      "description": null,
+      "display": "line",
+      "dataset_query": {
+        "database": 2,
+        "type": "query",
+        "query": {
+          "source-table": 9,
+          "aggregation": [
+            [
+              "sum",
+              [
+                "field",
+                79,
+                {
+                  "base-type": "type/Decimal"
+                }
+              ]
+            ]
+          ],
+          "breakout": [
+            [
+              "field",
+              78,
+              {
+                "base-type": "type/Date",
+                "temporal-unit": "day",
+                "original-temporal-unit": "month"
+              }
+            ]
+          ],
+          "aggregation-idents": {
+            "0": "YCWwEdRpNNTU0gE2hY3aC"
+          },
+          "breakout-idents": {
+            "0": "qKfm1MuEUfMpqtsY9MofK"
+          }
+        }
+      },
+      "visualization_settings": {
+        "graph.x_axis.scale": "timeseries",
+        "graph.dimensions": [
+          "sales_date"
+        ],
+        "graph.metrics": [
+          "sum"
+        ]
+      },
+      "parameters": [],
+      "parameter_mappings": []
+    },
+    {
+      "id": 30,
+      "name": "Среднее число продаж за час - по времени суток",
+      "description": null,
+      "display": "row",
+      "dataset_query": {
+        "database": 2,
+        "type": "query",
+        "query": {
+          "source-table": 9,
+          "aggregation": [
+            [
+              "sum",
+              [
+                "field",
+                81,
+                {
+                  "base-type": "type/BigInteger"
+                }
+              ]
+            ]
+          ],
+          "breakout": [
+            [
+              "field",
+              83,
+              {
+                "base-type": "type/Integer"
+              }
+            ]
+          ],
+          "aggregation-idents": {
+            "0": "ck9VCjCLRszvw-IDytojB"
+          },
+          "breakout-idents": {
+            "0": "NG_f0yVTjBL9xjoJ4M_E8"
+          }
+        }
+      },
+      "visualization_settings": {
+        "graph.dimensions": [
+          "hour"
+        ],
+        "graph.metrics": [
+          "sum"
+        ]
+      },
+      "parameters": [],
+      "parameter_mappings": []
+    },
+    {
+      "id": 31,
+      "name": "Средние продажи в час по температуре",
+      "description": null,
+      "display": "bar",
+      "dataset_query": {
+        "database": 2,
+        "type": "query",
+        "query": {
+          "source-table": 9,
+          "aggregation": [
+            [
+              "sum",
+              [
+                "field",
+                81,
+                {
+                  "base-type": "type/BigInteger"
+                }
+              ]
+            ]
+          ],
+          "breakout": [
+            [
+              "field",
+              76,
+              {
+                "base-type": "type/Decimal",
+                "binning": {
+                  "strategy": "default"
+                }
+              }
+            ]
+          ],
+          "aggregation-idents": {
+            "0": "MjtHHZ_YyNFFTJzaOPtlB"
+          },
+          "breakout-idents": {
+            "0": "wKQCPUxIrpzXW5I1CxgeW"
+          },
+          "filter": [
+            "not-null",
+            [
+              "field",
+              76,
+              {
+                "base-type": "type/Decimal"
+              }
+            ]
+          ]
+        }
+      },
+      "visualization_settings": {
+        "series_settings": {
+          "sum": {
+            "color": "#F2A86F"
+          }
+        },
+        "graph.x_axis.axis_enabled": "rotate-45",
+        "graph.x_axis.scale": "ordinal",
+        "graph.y_axis.scale": "linear",
+        "graph.y_axis.split_number": 10,
+        "graph.label_value_formatting": "auto",
+        "graph.dimensions": [
+          "temperature_c"
+        ],
+        "graph.metrics": [
+          "sum"
+        ]
+      },
+      "parameters": [],
+      "parameter_mappings": []
+    },
+    {
+      "id": 32,
+      "name": "Продажи по часам: с осадками и без",
+      "description": null,
+      "display": "bar",
+      "dataset_query": {
+        "database": 2,
+        "type": "query",
+        "query": {
+          "source-table": 9,
+          "expressions": {
+            "Осадки": [
+              "case",
+              [
+                [
+                  [
+                    ">",
+                    [
+                      "field",
+                      82,
+                      {
+                        "base-type": "type/Decimal"
+                      }
+                    ],
+                    0
+                  ],
+                  "С осадками"
+                ]
+              ],
+              {
+                "default": "Без осадков"
+              }
+            ]
+          },
+          "breakout": [
+            [
+              "expression",
+              "Осадки",
+              {
+                "base-type": "type/Text"
+              }
+            ]
+          ],
+          "aggregation": [
+            [
+              "avg",
+              [
+                "field",
+                81,
+                {
+                  "base-type": "type/BigInteger"
+                }
+              ]
+            ]
+          ],
+          "aggregation-idents": {
+            "0": "WiidOeLrU7LeTB2EFYsDV"
+          },
+          "breakout-idents": {
+            "0": "ekBFR0sEIpEOwXMFaIZrT"
+          },
+          "expression-idents": {
+            "Осадки": "FSgn-g4YKjV3NUJgzxldv"
+          },
+          "filter": [
+            "not-null",
+            [
+              "field",
+              82,
+              {
+                "base-type": "type/Decimal"
+              }
+            ]
+          ]
+        }
+      },
+      "visualization_settings": {
+        "series_settings": {
+          "avg": {
+            "color": "#87BCEC"
+          }
+        },
+        "graph.x_axis.scale": "ordinal",
+        "graph.dimensions": [
+          "Осадки"
+        ],
+        "graph.metrics": [
+          "avg"
+        ]
+      },
+      "parameters": [],
+      "parameter_mappings": []
+    },
+    {
+      "id": 34,
+      "name": "Количество продаж",
+      "description": null,
+      "display": "scalar",
+      "dataset_query": {
+        "database": 2,
+        "type": "query",
+        "query": {
+          "source-table": 9,
+          "aggregation": [
+            [
+              "sum",
+              [
+                "field",
+                81,
+                {
+                  "base-type": "type/BigInteger"
+                }
+              ]
+            ]
+          ],
+          "aggregation-idents": {
+            "0": "qkqpoDDtpWQjel8Vexhtk"
+          }
+        }
+      },
+      "visualization_settings": {},
+      "parameters": [],
+      "parameter_mappings": []
+    },
+    {
+      "id": 36,
+      "name": "Выручка от продуктов",
+      "description": null,
+      "display": "scalar",
+      "dataset_query": {
+        "database": 2,
+        "type": "query",
+        "query": {
+          "source-table": 10,
+          "aggregation": [
+            [
+              "sum",
+              [
+                "field",
+                88,
+                {
+                  "base-type": "type/Decimal"
+                }
+              ]
+            ]
+          ],
+          "aggregation-idents": {
+            "0": "vB98ROXUTy6qv-Jk_8bWE"
+          }
+        }
+      },
+      "visualization_settings": {
+        "column_settings": {
+          "[\"name\",\"sum\"]": {
+            "number_style": "currency",
+            "currency": "RUB"
+          }
+        }
+      },
+      "parameters": [],
+      "parameter_mappings": []
+    },
+    {
+      "id": 37,
+      "name": "Продано единиц продукции",
+      "description": null,
+      "display": "scalar",
+      "dataset_query": {
+        "database": 2,
+        "type": "query",
+        "query": {
+          "source-table": 10,
+          "aggregation": [
+            [
+              "sum",
+              [
+                "field",
+                87,
+                {
+                  "base-type": "type/BigInteger"
+                }
+              ]
+            ]
+          ],
+          "aggregation-idents": {
+            "0": "MucWQz7na6moTuNNFNQGi"
+          }
+        }
+      },
+      "visualization_settings": {
+        "column_settings": {
+          "[\"name\",\"sum\"]": {
+            "number_style": "currency",
+            "currency": "RUB"
+          }
+        }
+      },
+      "parameters": [],
+      "parameter_mappings": []
+    },
+    {
+      "id": 38,
+      "name": "Продано единиц продукции",
+      "description": null,
+      "display": "scalar",
+      "dataset_query": {
+        "database": 2,
+        "type": "query",
+        "query": {
+          "source-table": 10,
+          "aggregation": [
+            [
+              "sum",
+              [
+                "field",
+                87,
+                {
+                  "base-type": "type/BigInteger"
+                }
+              ]
+            ]
+          ],
+          "aggregation-idents": {
+            "0": "W2AiCqhrclwbzbJVVIVVz"
+          }
+        }
+      },
+      "visualization_settings": {
+        "column_settings": {
+          "[\"name\",\"sum\"]": {
+            "number_style": "currency",
+            "currency": "RUB"
+          }
+        }
+      },
+      "parameters": [],
+      "parameter_mappings": []
+    },
+    {
+      "id": 39,
+      "name": "Продукты: выручка по ассортименту",
+      "description": null,
+      "display": "bar",
+      "dataset_query": {
+        "database": 2,
+        "type": "query",
+        "query": {
+          "source-table": 10,
+          "aggregation": [
+            [
+              "sum",
+              [
+                "field",
+                88,
+                {
+                  "base-type": "type/Decimal"
+                }
+              ]
+            ]
+          ],
+          "breakout": [
+            [
+              "field",
+              94,
+              {
+                "base-type": "type/Text"
+              }
+            ]
+          ],
+          "order-by": [
+            [
+              "desc",
+              [
+                "aggregation",
+                0
+              ]
+            ]
+          ],
+          "aggregation-idents": {
+            "0": "XCqowsOXoIYpPqrI2JTEf"
+          },
+          "breakout-idents": {
+            "0": "9PpJqmTZU8F_tyxK-lv8T"
+          }
+        }
+      },
+      "visualization_settings": {
+        "graph.y_axis.scale": "linear",
+        "graph.y_axis.axis_enabled": true,
+        "graph.y_axis.split_number": 250,
+        "graph.x_axis.scale": "ordinal",
+        "graph.dimensions": [
+          "product_name"
+        ],
+        "graph.metrics": [
+          "sum"
+        ]
+      },
+      "parameters": [],
+      "parameter_mappings": []
+    },
+    {
+      "id": 40,
+      "name": "Продукты: объём продаж по месяцам",
+      "description": null,
+      "display": "line",
+      "dataset_query": {
+        "database": 2,
+        "type": "query",
+        "query": {
+          "source-table": 10,
+          "aggregation": [
+            [
+              "sum",
+              [
+                "field",
+                87,
+                {
+                  "base-type": "type/BigInteger"
+                }
+              ]
+            ]
+          ],
+          "breakout": [
+            [
+              "field",
+              95,
+              {
+                "base-type": "type/Date",
+                "temporal-unit": "month"
+              }
+            ],
+            [
+              "field",
+              94,
+              {
+                "base-type": "type/Text"
+              }
+            ]
+          ],
+          "aggregation-idents": {
+            "0": "k3tSx8DZiwasANHJtheoY"
+          },
+          "breakout-idents": {
+            "0": "kF9pBqBEiVbX7CtI7U1uQ",
+            "1": "Nap4iYMQ3SYpBAeuWns0b"
+          }
+        }
+      },
+      "visualization_settings": {
+        "graph.label_value_formatting": "full",
+        "graph.show_goal": false,
+        "graph.show_values": true,
+        "graph.y_axis.split_number": 100,
+        "graph.x_axis.scale": "timeseries",
+        "graph.dimensions": [
+          "sales_date",
+          "product_name"
+        ],
+        "graph.metrics": [
+          "sum"
+        ]
+      },
+      "parameters": [],
+      "parameter_mappings": []
+    },
+    {
+      "id": 41,
+      "name": "Продукты: структура выручки",
+      "description": null,
+      "display": "pie",
+      "dataset_query": {
+        "database": 2,
+        "type": "query",
+        "query": {
+          "source-table": 10,
+          "aggregation": [
+            [
+              "sum",
+              [
+                "field",
+                88,
+                {
+                  "base-type": "type/Decimal"
+                }
+              ]
+            ]
+          ],
+          "breakout": [
+            [
+              "field",
+              94,
+              {
+                "base-type": "type/Text"
+              }
+            ]
+          ],
+          "aggregation-idents": {
+            "0": "9ATPetcA675_k16JXhUL9"
+          },
+          "breakout-idents": {
+            "0": "o_LGjdKMCdKHC64ifbpeC"
+          }
+        }
+      },
+      "visualization_settings": {},
+      "parameters": [],
+      "parameter_mappings": []
+    },
+    {
+      "id": 42,
+      "name": "Дневная выручка",
+      "description": null,
+      "display": "line",
+      "dataset_query": {
+        "database": 2,
+        "type": "query",
+        "query": {
+          "source-table": 11,
+          "aggregation": [
+            [
+              "sum",
+              [
+                "field",
+                104,
+                {
+                  "base-type": "type/Decimal"
+                }
+              ]
+            ]
+          ],
+          "breakout": [
+            [
+              "field",
+              109,
+              {
+                "base-type": "type/Date",
+                "temporal-unit": "month"
+              }
+            ]
+          ],
+          "aggregation-idents": {
+            "0": "j0m1wNpZWHJkTpmcYJdKK"
+          },
+          "breakout-idents": {
+            "0": "nO2OqrR0TvrDX6190kFOT"
+          }
+        }
+      },
+      "visualization_settings": {
+        "graph.x_axis.scale": "timeseries",
+        "graph.dimensions": [
+          "sales_date"
+        ],
+        "graph.metrics": [
+          "sum"
+        ]
+      },
+      "parameters": [],
+      "parameter_mappings": []
+    },
+    {
+      "id": 43,
+      "name": "Среднее число чеков: будни и выходные",
+      "description": null,
+      "display": "bar",
+      "dataset_query": {
+        "database": 2,
+        "type": "query",
+        "query": {
+          "source-table": 11,
+          "aggregation": [
+            [
+              "avg",
+              [
+                "field",
+                103,
+                {
+                  "base-type": "type/BigInteger"
+                }
+              ]
+            ]
+          ],
+          "breakout": [
+            [
+              "field",
+              99,
+              {
+                "base-type": "type/Boolean"
+              }
+            ]
+          ],
+          "aggregation-idents": {
+            "0": "w83mpYOVYOIMQZb1G7O60"
+          },
+          "breakout-idents": {
+            "0": "4wjLb4vJSvQMTw3Xm0P2t"
+          }
+        }
+      },
+      "visualization_settings": {
+        "graph.x_axis.axis_enabled": true,
+        "graph.y_axis.scale": "linear",
+        "graph.y_axis.split_number": 50,
+        "graph.x_axis.scale": "ordinal",
+        "graph.dimensions": [
+          "is_weekend"
+        ],
+        "graph.metrics": [
+          "avg"
+        ]
+      },
+      "parameters": [],
+      "parameter_mappings": []
+    },
+    {
+      "id": 44,
+      "name": "Среднее число чеков по температуре",
+      "description": null,
+      "display": "bar",
+      "dataset_query": {
+        "database": 2,
+        "type": "query",
+        "query": {
+          "source-table": 11,
+          "expressions": {
+            "Температурная группа": [
+              "case",
+              [
+                [
+                  [
+                    "<",
+                    [
+                      "field",
+                      106,
+                      {
+                        "base-type": "type/Float"
+                      }
+                    ],
+                    0
+                  ],
+                  "1. Ниже 0 °C"
+                ],
+                [
+                  [
+                    "<",
+                    [
+                      "field",
+                      106,
+                      {
+                        "base-type": "type/Float"
+                      }
+                    ],
+                    15
+                  ],
+                  "2. От 0 до 15 °C"
+                ]
+              ],
+              {
+                "default": "3. От 15 °C и выше"
+              }
+            ]
+          },
+          "breakout": [
+            [
+              "expression",
+              "Температурная группа",
+              {
+                "base-type": "type/Text"
+              }
+            ]
+          ],
+          "aggregation": [
+            [
+              "avg",
+              [
+                "field",
+                103,
+                {
+                  "base-type": "type/BigInteger"
+                }
+              ]
+            ]
+          ],
+          "aggregation-idents": {
+            "0": "SPA6PpU0PS7aD4eVR_BCQ"
+          },
+          "breakout-idents": {
+            "0": "le4koeA4Wue7Xog5nvYK0"
+          },
+          "expression-idents": {
+            "Температурная группа": "nUlaZA_oUo3OS-7aP8ZM7"
+          },
+          "filter": [
+            "=",
+            [
+              "field",
+              98,
+              {
+                "base-type": "type/Integer"
+              }
+            ],
+            24
+          ]
+        }
+      },
+      "visualization_settings": {
+        "series_settings": {
+          "avg": {
+            "color": "#F2A86F"
+          }
+        },
+        "graph.x_axis.scale": "ordinal",
+        "graph.dimensions": [
+          "Температурная группа"
+        ],
+        "graph.metrics": [
+          "avg"
+        ]
+      },
+      "parameters": [],
+      "parameter_mappings": []
+    },
+    {
+      "id": 46,
+      "name": "Средняя дневная выручка: осадки",
+      "description": null,
+      "display": "bar",
+      "dataset_query": {
+        "database": 2,
+        "type": "query",
+        "query": {
+          "source-table": 11,
+          "expressions": {
+            "Наличие осадков": [
+              "case",
+              [
+                [
+                  [
+                    ">",
+                    [
+                      "field",
+                      108,
+                      {
+                        "base-type": "type/Decimal"
+                      }
+                    ],
+                    0
+                  ],
+                  "С осадками"
+                ]
+              ],
+              {
+                "default": "Без осадков"
+              }
+            ]
+          },
+          "breakout": [
+            [
+              "expression",
+              "Наличие осадков",
+              {
+                "base-type": "type/Text"
+              }
+            ]
+          ],
+          "aggregation": [
+            [
+              "avg",
+              [
+                "field",
+                104,
+                {
+                  "base-type": "type/Decimal"
+                }
+              ]
+            ]
+          ],
+          "aggregation-idents": {
+            "0": "EszrosIChed4hBzcAhXbL"
+          },
+          "breakout-idents": {
+            "0": "YKYr46zg-nNNJckjgNrpf"
+          },
+          "expression-idents": {
+            "Наличие осадков": "t5f-aoZ4qd4HsCaDntaSc"
+          },
+          "filter": [
+            "=",
+            [
+              "field",
+              110,
+              {
+                "base-type": "type/Integer"
+              }
+            ],
+            24
+          ]
+        }
+      },
+      "visualization_settings": {
+        "pivot_table.column_widths": {
+          "leftHeaderWidths": [
+            132
+          ],
+          "totalLeftHeaderWidths": 132,
+          "valueHeaderWidths": {}
+        },
+        "pivot_table.column_split": {
+          "rows": [
+            "Наличие осадков"
+          ],
+          "columns": [],
+          "values": [
+            "avg"
+          ]
+        },
+        "series_settings": {
+          "avg": {
+            "color": "#98D9D9"
+          }
+        },
+        "graph.label_value_formatting": "auto",
+        "graph.x_axis.scale": "ordinal",
+        "graph.dimensions": [
+          "Наличие осадков"
+        ],
+        "graph.metrics": [
+          "avg"
+        ]
+      },
+      "parameters": [],
+      "parameter_mappings": []
+    }
+  ],
+  "dashboards": [
+    {
+      "id": 2,
+      "name": "Продажи и погода",
+      "description": null,
+      "parameters": [],
+      "width": "fixed"
+    },
+    {
+      "id": 3,
+      "name": "Ассортимент и продажи",
+      "description": null,
+      "parameters": [],
+      "width": "fixed"
+    },
+    {
+      "id": 4,
+      "name": "Дневные продажи: сезонность и погодные условия",
+      "description": null,
+      "parameters": [],
+      "width": "fixed"
+    }
+  ],
+  "dashcards": [
+    {
+      "id": 34,
+      "dashboard_id": 2,
+      "card_id": 29,
+      "size_x": 24,
+      "size_y": 12,
+      "row": 0,
+      "col": 0,
+      "parameter_mappings": [],
+      "visualization_settings": {},
+      "dashboard_tab_id": null,
+      "series": []
+    },
+    {
+      "id": 35,
+      "dashboard_id": 2,
+      "card_id": 30,
+      "size_x": 13,
+      "size_y": 15,
+      "row": 12,
+      "col": 0,
+      "parameter_mappings": [],
+      "visualization_settings": {
+        "graph.dimensions": [
+          "hour"
+        ],
+        "graph.metrics": [
+          "sum"
+        ],
+        "series_settings": {
+          "sum": {
+            "color": "#A989C5"
+          }
+        }
+      },
+      "dashboard_tab_id": null,
+      "series": []
+    },
+    {
+      "id": 36,
+      "dashboard_id": 2,
+      "card_id": 31,
+      "size_x": 24,
+      "size_y": 10,
+      "row": 27,
+      "col": 0,
+      "parameter_mappings": [],
+      "visualization_settings": {},
+      "dashboard_tab_id": null,
+      "series": []
+    },
+    {
+      "id": 37,
+      "dashboard_id": 2,
+      "card_id": 32,
+      "size_x": 11,
+      "size_y": 8,
+      "row": 12,
+      "col": 13,
+      "parameter_mappings": [],
+      "visualization_settings": {},
+      "dashboard_tab_id": null,
+      "series": []
+    },
+    {
+      "id": 39,
+      "dashboard_id": 2,
+      "card_id": 34,
+      "size_x": 11,
+      "size_y": 4,
+      "row": 23,
+      "col": 13,
+      "parameter_mappings": [],
+      "visualization_settings": {},
+      "dashboard_tab_id": null,
+      "series": []
+    },
+    {
+      "id": 41,
+      "dashboard_id": 3,
+      "card_id": 36,
+      "size_x": 8,
+      "size_y": 5,
+      "row": 21,
+      "col": 16,
+      "parameter_mappings": [],
+      "visualization_settings": {},
+      "dashboard_tab_id": null,
+      "series": []
+    },
+    {
+      "id": 42,
+      "dashboard_id": 2,
+      "card_id": 37,
+      "size_x": 11,
+      "size_y": 3,
+      "row": 20,
+      "col": 13,
+      "parameter_mappings": [],
+      "visualization_settings": {},
+      "dashboard_tab_id": null,
+      "series": []
+    },
+    {
+      "id": 43,
+      "dashboard_id": 3,
+      "card_id": 38,
+      "size_x": 8,
+      "size_y": 5,
+      "row": 26,
+      "col": 16,
+      "parameter_mappings": [],
+      "visualization_settings": {},
+      "dashboard_tab_id": null,
+      "series": []
+    },
+    {
+      "id": 44,
+      "dashboard_id": 3,
+      "card_id": 39,
+      "size_x": 24,
+      "size_y": 9,
+      "row": 0,
+      "col": 0,
+      "parameter_mappings": [],
+      "visualization_settings": {},
+      "dashboard_tab_id": null,
+      "series": []
+    },
+    {
+      "id": 45,
+      "dashboard_id": 3,
+      "card_id": 40,
+      "size_x": 24,
+      "size_y": 12,
+      "row": 9,
+      "col": 0,
+      "parameter_mappings": [],
+      "visualization_settings": {},
+      "dashboard_tab_id": null,
+      "series": []
+    },
+    {
+      "id": 46,
+      "dashboard_id": 3,
+      "card_id": 41,
+      "size_x": 16,
+      "size_y": 10,
+      "row": 21,
+      "col": 0,
+      "parameter_mappings": [],
+      "visualization_settings": {},
+      "dashboard_tab_id": null,
+      "series": []
+    },
+    {
+      "id": 47,
+      "dashboard_id": 4,
+      "card_id": 42,
+      "size_x": 24,
+      "size_y": 10,
+      "row": 0,
+      "col": 0,
+      "parameter_mappings": [],
+      "visualization_settings": {},
+      "dashboard_tab_id": null,
+      "series": []
+    },
+    {
+      "id": 48,
+      "dashboard_id": 4,
+      "card_id": 43,
+      "size_x": 12,
+      "size_y": 8,
+      "row": 10,
+      "col": 12,
+      "parameter_mappings": [],
+      "visualization_settings": {},
+      "dashboard_tab_id": null,
+      "series": []
+    },
+    {
+      "id": 49,
+      "dashboard_id": 4,
+      "card_id": 44,
+      "size_x": 24,
+      "size_y": 12,
+      "row": 18,
+      "col": 0,
+      "parameter_mappings": [],
+      "visualization_settings": {},
+      "dashboard_tab_id": null,
+      "series": []
+    },
+    {
+      "id": 51,
+      "dashboard_id": 4,
+      "card_id": 46,
+      "size_x": 12,
+      "size_y": 8,
+      "row": 10,
+      "col": 0,
+      "parameter_mappings": [],
+      "visualization_settings": {},
+      "dashboard_tab_id": null,
+      "series": []
+    }
+  ],
+  "tables": [
+    {
+      "id": 11,
+      "name": "mart_sales_weather_daily",
+      "schema": "marts"
+    },
+    {
+      "id": 10,
+      "name": "mart_product_sales_daily",
+      "schema": "marts"
+    },
+    {
+      "id": 9,
+      "name": "mart_sales_weather_hourly",
+      "schema": "marts"
+    }
+  ],
+  "fields": [
+    {
+      "id": 78,
+      "table_id": 9,
+      "name": "sales_date",
+      "display_name": "Sales Date",
+      "semantic_type": "type/PK",
+      "settings": null
+    },
+    {
+      "id": 80,
+      "table_id": 9,
+      "name": "city_key",
+      "display_name": "City Key",
+      "semantic_type": "type/PK",
+      "settings": null
+    },
+    {
+      "id": 83,
+      "table_id": 9,
+      "name": "hour",
+      "display_name": "Hour",
+      "semantic_type": "type/PK",
+      "settings": null
+    },
+    {
+      "id": 72,
+      "table_id": 9,
+      "name": "measured_at",
+      "display_name": "Measured At",
+      "semantic_type": null,
+      "settings": null
+    },
+    {
+      "id": 87,
+      "table_id": 10,
+      "name": "units_sold",
+      "display_name": "Units Sold",
+      "semantic_type": null,
+      "settings": null
+    },
+    {
+      "id": 73,
+      "table_id": 9,
+      "name": "surface_pressure_hpa",
+      "display_name": "Surface Pressure Hpa",
+      "semantic_type": null,
+      "settings": null
+    },
+    {
+      "id": 75,
+      "table_id": 9,
+      "name": "city_name",
+      "display_name": "City Name",
+      "semantic_type": "type/Category",
+      "settings": null
+    },
+    {
+      "id": 81,
+      "table_id": 9,
+      "name": "sales_count",
+      "display_name": "Sales Count",
+      "semantic_type": "type/Quantity",
+      "settings": null
+    },
+    {
+      "id": 76,
+      "table_id": 9,
+      "name": "temperature_c",
+      "display_name": "Temperature C",
+      "semantic_type": null,
+      "settings": null
+    },
+    {
+      "id": 77,
+      "table_id": 9,
+      "name": "average_check_rub",
+      "display_name": "Average Check Rub",
+      "semantic_type": null,
+      "settings": null
+    },
+    {
+      "id": 79,
+      "table_id": 9,
+      "name": "total_revenue_rub",
+      "display_name": "Total Revenue Rub",
+      "semantic_type": null,
+      "settings": null
+    },
+    {
+      "id": 82,
+      "table_id": 9,
+      "name": "precipitation_mm",
+      "display_name": "Precipitation Mm",
+      "semantic_type": null,
+      "settings": null
+    },
+    {
+      "id": 84,
+      "table_id": 9,
+      "name": "date_key",
+      "display_name": "Date Key",
+      "semantic_type": null,
+      "settings": null
+    },
+    {
+      "id": 85,
+      "table_id": 9,
+      "name": "apparent_temperature_c",
+      "display_name": "Apparent Temperature C",
+      "semantic_type": null,
+      "settings": null
+    },
+    {
+      "id": 74,
+      "table_id": 9,
+      "name": "city_slug",
+      "display_name": "City Slug",
+      "semantic_type": "type/Category",
+      "settings": null
+    },
+    {
+      "id": 89,
+      "table_id": 10,
+      "name": "city_key",
+      "display_name": "City Key",
+      "semantic_type": "type/PK",
+      "settings": null
+    },
+    {
+      "id": 90,
+      "table_id": 10,
+      "name": "product_key",
+      "display_name": "Product Key",
+      "semantic_type": "type/PK",
+      "settings": null
+    },
+    {
+      "id": 95,
+      "table_id": 10,
+      "name": "sales_date",
+      "display_name": "Sales Date",
+      "semantic_type": "type/PK",
+      "settings": null
+    },
+    {
+      "id": 100,
+      "table_id": 11,
+      "name": "city_key",
+      "display_name": "City Key",
+      "semantic_type": "type/PK",
+      "settings": null
+    },
+    {
+      "id": 109,
+      "table_id": 11,
+      "name": "sales_date",
+      "display_name": "Sales Date",
+      "semantic_type": "type/PK",
+      "settings": null
+    },
+    {
+      "id": 88,
+      "table_id": 10,
+      "name": "product_revenue_rub",
+      "display_name": "Product Revenue Rub",
+      "semantic_type": null,
+      "settings": null
+    },
+    {
+      "id": 99,
+      "table_id": 11,
+      "name": "is_weekend",
+      "display_name": "Is Weekend",
+      "semantic_type": null,
+      "settings": null
+    },
+    {
+      "id": 96,
+      "table_id": 10,
+      "name": "date_key",
+      "display_name": "Date Key",
+      "semantic_type": null,
+      "settings": null
+    },
+    {
+      "id": 111,
+      "table_id": 11,
+      "name": "date_key",
+      "display_name": "Date Key",
+      "semantic_type": null,
+      "settings": null
+    },
+    {
+      "id": 113,
+      "table_id": 11,
+      "name": "min_temperature_c",
+      "display_name": "Min Temperature C",
+      "semantic_type": null,
+      "settings": null
+    },
+    {
+      "id": 102,
+      "table_id": 11,
+      "name": "max_temperature_c",
+      "display_name": "Max Temperature C",
+      "semantic_type": null,
+      "settings": null
+    },
+    {
+      "id": 104,
+      "table_id": 11,
+      "name": "total_revenue_rub",
+      "display_name": "Total Revenue Rub",
+      "semantic_type": null,
+      "settings": null
+    },
+    {
+      "id": 91,
+      "table_id": 10,
+      "name": "city_slug",
+      "display_name": "City Slug",
+      "semantic_type": "type/Category",
+      "settings": null
+    },
+    {
+      "id": 93,
+      "table_id": 10,
+      "name": "city_name",
+      "display_name": "City Name",
+      "semantic_type": "type/Category",
+      "settings": null
+    },
+    {
+      "id": 110,
+      "table_id": 11,
+      "name": "precipitation_hours_count",
+      "display_name": "Precipitation Hours Count",
+      "semantic_type": "type/Quantity",
+      "settings": null
+    },
+    {
+      "id": 98,
+      "table_id": 11,
+      "name": "temperature_hours_count",
+      "display_name": "Temperature Hours Count",
+      "semantic_type": "type/Quantity",
+      "settings": null
+    },
+    {
+      "id": 92,
+      "table_id": 10,
+      "name": "average_unit_price_rub",
+      "display_name": "Average Unit Price Rub",
+      "semantic_type": null,
+      "settings": null
+    },
+    {
+      "id": 103,
+      "table_id": 11,
+      "name": "sales_count",
+      "display_name": "Sales Count",
+      "semantic_type": "type/Quantity",
+      "settings": null
+    },
+    {
+      "id": 105,
+      "table_id": 11,
+      "name": "weekday",
+      "display_name": "Weekday",
+      "semantic_type": "type/Category",
+      "settings": null
+    },
+    {
+      "id": 101,
+      "table_id": 11,
+      "name": "average_check_rub",
+      "display_name": "Average Check Rub",
+      "semantic_type": null,
+      "settings": null
+    },
+    {
+      "id": 107,
+      "table_id": 11,
+      "name": "city_name",
+      "display_name": "City Name",
+      "semantic_type": "type/Category",
+      "settings": null
+    },
+    {
+      "id": 94,
+      "table_id": 10,
+      "name": "product_name",
+      "display_name": "Product Name",
+      "semantic_type": "type/Category",
+      "settings": null
+    },
+    {
+      "id": 106,
+      "table_id": 11,
+      "name": "avg_temperature_c",
+      "display_name": "Avg Temperature C",
+      "semantic_type": null,
+      "settings": null
+    },
+    {
+      "id": 108,
+      "table_id": 11,
+      "name": "total_precipitation_mm",
+      "display_name": "Total Precipitation Mm",
+      "semantic_type": null,
+      "settings": null
+    },
+    {
+      "id": 86,
+      "table_id": 10,
+      "name": "revenue_share_pct",
+      "display_name": "Revenue Share Pct",
+      "semantic_type": "type/Share",
+      "settings": null
+    },
+    {
+      "id": 97,
+      "table_id": 10,
+      "name": "receipts_count",
+      "display_name": "Receipts Count",
+      "semantic_type": "type/Quantity",
+      "settings": null
+    },
+    {
+      "id": 112,
+      "table_id": 11,
+      "name": "city_slug",
+      "display_name": "City Slug",
+      "semantic_type": "type/Category",
+      "settings": null
+    }
+  ],
+  "tabs": []
+}

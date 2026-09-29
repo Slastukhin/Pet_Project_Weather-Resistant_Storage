@@ -1,17 +1,72 @@
-name: Проверка PR
+name: Project checks
 
 on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: checks-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   check:
+    if: github.head_ref == 'dev'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: dwh
+          POSTGRES_PASSWORD: dwh
+          POSTGRES_DB: dwh
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U dwh"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DWH_POSTGRES_HOST: localhost
+      DWH_POSTGRES_PORT: '5432'
+      DWH_POSTGRES_USER: dwh
+      DWH_POSTGRES_PASSWORD: dwh
+      DWH_POSTGRES_DB: dwh
+      DBT_POSTGRES_HOST: localhost
+      DBT_POSTGRES_PORT: '5432'
+      DBT_SEND_ANONYMOUS_USAGE_STATS: 'false'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.13.5'
-      - run: pip install flake8 pytest
-      - run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-      - run: pytest tests/ || true
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            requirements-dev.txt
+            dbt-requirements.txt
+      - name: Install dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Compose configuration
+        run: docker compose --env-file .env.example config --quiet
+      - name: Python syntax
+        run: python -m compileall -q dags scripts spark/jobs tests
+      - name: Python errors
+        run: ruff check dags scripts spark/jobs tests --select E9,F63,F7,F82
+      - name: Unit tests
+        run: python -m unittest discover -s tests -v
+      - name: Restore teaching data
+        run: python scripts/restore_raw.py
+      - name: Build dbt models and run data tests
+        working-directory: dbt/my_dwh
+        run: |
+          dbt deps --profiles-dir .
+          dbt build --profiles-dir . --threads 2
+      - name: Save dbt results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dbt-results
+          path: |
+            dbt/my_dwh/target/run_results.json
+            dbt/my_dwh/logs/dbt.log

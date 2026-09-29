@@ -1,0 +1,32 @@
+name: 'my_dwh'
+version: '1.0.0'
+config-version: 2
+
+
+profile: 'my_dwh'
+packages-install-path: "{{ env_var('DBT_PACKAGES_INSTALL_PATH', 'dbt_packages') }}"
+
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:         
+  - "target"
+  - "dbt_packages"
+
+
+models:
+  my_dwh:
+    staging:
+      +materialized: view
+      +schema: stg
+    core:
+      +materialized: table
+      +schema: core
+    marts:
+      +materialized: table
+      +schema: marts
